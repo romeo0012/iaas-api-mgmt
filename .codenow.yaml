@@ -1,0 +1,30 @@
+version: v1
+# If advanced mode is active CI pipelines use Dockerfile and helm descriptor from repository
+advancedMode:
+  enabled: false
+build:
+  # Image used by CI pipelines in build tasks, recommendation: use the official node repo if you want to change runtime version: https://hub.docker.com/_/node
+  image: docker.io/node:20.2.0
+  # definitions of environment variables that will be used in all stages of your pipeline
+  environmentVariables: []
+    #- key: variable1
+    #  value: value1
+    #- key: variable2
+    #  value: value2
+    #- key: variable3
+    #  value: value3
+  pipelines:
+    release:
+      pipeline: js-npm-app-release
+    preview:
+      pipeline: js-npm-app-preview
+    triggers: []
+runtime:
+  # Image is used as a base image for your runtime container
+  image: docker.io/nginxinc/nginx-unprivileged:stable-alpine
+  # Port on which the service will be exposed
+  port: 3000
+  endpoints:
+    external:
+      # Expose service to external endpoint
+      enabled: true
