@@ -120,11 +120,10 @@ function renderCosting(costing) {
   $('totCpu').textContent = fmt(t.cpuGHz) + ' GHz'
   $('totRam').textContent = fmt(t.ramGB) + ' GiB'
   $('totDisk').textContent = fmt(t.diskGB) + ' GB'
-  const cl = t.cloudlets != null ? fmt(t.cloudlets) : '0'
-  const clComp = (costing.cloudletRamGiB != null && costing.cloudletCostCZK)
-    ? ` (= ${fmt1(costing.cloudletRamGiB)} GiB + ${fmt1(costing.cloudletCpuGHz)} GHz · ${fmt(costing.cloudletCostCZK)} Kč PaaS)`
-    : ''
-  $('totCloudlets').textContent = cl + clComp
+  $('totCloudlets').textContent = t.cloudlets != null ? fmt(t.cloudlets) : '0'
+  $('totCloudRam').textContent = fmt1(costing.cloudletRamGiB != null ? costing.cloudletRamGiB : 0) + ' GiB'
+  $('totCloudCpu').textContent = fmt1(costing.cloudletCpuGHz != null ? costing.cloudletCpuGHz : 0) + ' GHz'
+  $('totCloudCost').textContent = fmt(costing.cloudletCostCZK != null ? costing.cloudletCostCZK : 0) + ' Kč'
   $('totCpuCost').textContent = fmt(t.cpuCostCZK) + ' Kč'
   $('totRamCost').textContent = fmt(t.ramCostCZK) + ' Kč'
   $('totDiskCost').textContent = fmt(t.diskCostCZK) + ' Kč'

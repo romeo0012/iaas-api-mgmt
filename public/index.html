@@ -97,7 +97,7 @@
     </section>
 
     <section class="card costing">
-      <h2>Costing / měsíc</h2>
+      <h2>IaaS Costing / měsíc</h2>
       <div class="cost-commit">
         <label for="commitSel">Délka závazku</label>
         <select id="commitSel" title="Přepočítat cenu podle délky závazku"></select>
@@ -107,12 +107,18 @@
         <div class="cost-item"><span class="cost-label">CPU celkem</span><span id="totCpu">0 GHz</span></div>
         <div class="cost-item"><span class="cost-label">RAM celkem</span><span id="totRam">0 GiB</span></div>
         <div class="cost-item"><span class="cost-label">Disk celkem</span><span id="totDisk">0 GB</span></div>
-        <div class="cost-item"><span class="cost-label">Cloudlety celkem (PaaS)</span><span id="totCloudlets" title="1 cloudlet = 128 MiB RAM + 400 MHz CPU; cena a složení na PaaS kalkulačce">0</span></div>
         <div class="cost-item"><span class="cost-label">CPU</span><span id="totCpuCost">0</span></div>
         <div class="cost-item"><span class="cost-label">RAM</span><span id="totRamCost">0</span></div>
         <div class="cost-item"><span class="cost-label">Disk</span><span id="totDiskCost">0</span></div>
         <div class="cost-item"><span class="cost-label">Networking a FW</span><span id="totNetFw">0</span></div>
-        <div class="cost-item cost-total"><span class="cost-label">Celkem</span><span id="totPrice">0</span></div>
+        <div class="cost-item cost-total"><span class="cost-label">Celkem (IaaS)</span><span id="totPrice">0</span></div>
+      </div>
+      <div class="cost-paas" id="paasCloudlets">
+        <div class="cost-paas-title">PaaS Costing / měsíc</div>
+        <div class="cost-item"><span class="cost-label">Cloudlety</span><span id="totCloudlets" title="1 cloudlet = 128 MiB RAM + 400 MHz CPU; cena a složení na PaaS kalkulačce">0</span></div>
+        <div class="cost-item"><span class="cost-label">RAM</span><span id="totCloudRam">0 GiB</span></div>
+        <div class="cost-item"><span class="cost-label">CPU</span><span id="totCloudCpu">0 GHz</span></div>
+        <div class="cost-item cost-total"><span class="cost-label">Cena (PaaS)</span><span id="totCloudCost">0 Kč</span></div>
       </div>
       <div class="cost-disc" id="diskTierDetail"></div>
       <div class="cost-group-title">Cena podle skupiny</div>

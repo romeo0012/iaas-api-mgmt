@@ -245,7 +245,7 @@ body {
 .modal-actions .btn-danger { margin-left: auto; }
 
 /* ---- Costing ---- */
-.costing h2 { margin-top: 0; font-size: 16px; }
+.costing h2 { margin-top: 0; font-size: 12px; font-weight: 700; color: #7a5bd6; text-transform: uppercase; letter-spacing: 0.3px; }
 .cost-summary {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -261,8 +261,35 @@ body {
 .cost-item .cost-label { display: block; font-size: 11px; color: #667; text-transform: uppercase; }
 .cost-item > span:last-child { font-size: 18px; font-weight: 800; }
 .cost-total { background: #f0f6ff; border-color: #1f6feb; }
+.cost-summary .cost-item:not(.cost-total) { background: #faf8ff; border-color: #e6e0f5; }
+.cost-summary .cost-item:not(.cost-total) .cost-label { color: #8a79c9; }
+.cost-summary .cost-item:not(.cost-total) > span:last-child { color: #6b4fc0; }
 
 .cost-rate-note { font-size: 12px; color: #666; margin-bottom: 10px; }
+
+.cost-paas {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 2px dashed #ccd4e0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.cost-paas-title {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7a5bd6;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+}
+.cost-paas .cost-item { background: #faf8ff; border-color: #e6e0f5; }
+.cost-paas .cost-item .cost-label { color: #8a79c9; }
+.cost-paas .cost-item > span:last-child { color: #6b4fc0; }
+.cost-paas .cost-item.cost-total { background: #f0f6ff; border-color: #1f6feb; }
+.cost-paas .cost-item.cost-total .cost-label { color: #667; }
+.cost-paas .cost-item.cost-total > span:last-child { color: inherit; }
 
 .cost-commit { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .cost-commit label { font-size: 12px; color: #556; text-transform: uppercase; }
