@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IaaS API Mgmt — Architektura</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+
+    <header class="page-header">
+      <h1>IaaS API Mgmt</h1>
+      <p>Vizualizace a kalkulace VM architektury · klikni na VM pro CPU/RAM/Disk</p>
+    </header>
+
+    <section class="card topology">
+      <h2 class="sr-only">Topologie</h2>
+
+      <div class="t-node t-internet">INTERNET</div>
+      <div class="t-conn t-wan" id="wanConn" title="Public IP OPNsense (WAN)">
+        <span class="t-vlan-name" id="wanIp">WAN</span>
+      </div>
+
+      <!-- OPNsense firewall -->
+      <div class="vm vm-firewall vm-click" data-idx="opnsense" title="Klikni pro úpravu VM">
+        <div class="vm-title">OPNsense</div>
+        <div class="vm-sub">Firewall</div>
+        <div class="vm-spec">CPU <b>4</b> GHz · RAM <b>4</b> GiB · Disk <b>20</b> GB</div>
+        <div class="vm-cost" id="opnsenseCost"></div>
+      </div>
+
+      <div class="t-fanout" id="t-fanout"><!-- dynamically rendered groups --></div>
+
+      <div class="t-env">Environment: <b id="envName"></b></div>
+    </section>
+
+    <section class="card controls">
+      <h2>Servery</h2>
+      <div class="server-toolbar">
+        <button class="btn" id="addVmBtn">+ Přidat VM</button>
+        <button class="btn" id="importBtn">Import PaaS → IaaS</button>
+        <button class="btn" id="exportBtn">Export PaaS</button>
+        <button class="btn" id="saveTopoBtn">Uložit topologii</button>
+        <button class="btn" id="loadTopoBtn">Načíst topologii</button>
+        <button class="btn" id="dlTopoBtn">Stáhnout topologii</button>
+        <button class="btn" id="ulTopoBtn">Nahrát topologii</button>
+        <input type="file" id="ulTopoFile" accept=".json,application/json" hidden>
+        <button class="btn btn-primary" id="recalcBtn">Přepočítat</button>
+        <button class="btn btn-deploy" id="deployBtn">Deploy do IaaS</button>
+      </div>
+      <div class="topo-status" id="topoStatus"></div>
+
+      <div class="import-panel" id="exportPanel" hidden>
+        <div class="import-title">Export PaaS (Jelastic) — JSON</div>
+        <textarea id="exportJson" rows="12" spellcheck="false" readonly></textarea>
+        <div class="import-toolbar">
+          <button class="btn btn-primary" id="exportCopyBtn">Kopírovat</button>
+          <button class="btn" id="exportDlBtn">Stáhnout (.json)</button>
+          <button class="btn" id="exportCancelBtn">Zavřít</button>
+        </div>
+        <div class="import-err" id="exportErr"></div>
+      </div>
+
+      <div class="import-panel" id="importPanel" hidden>
+        <div class="import-title">Vlož export PaaS prostředí (JSON)</div>
+        <textarea id="importInput" rows="9" spellcheck="false" placeholder='{"type":"install","name":...,"nodes":[...]}'></textarea>
+        <div class="import-toolbar">
+          <button class="btn btn-primary" id="importOkBtn">Vytvořit topologii</button>
+          <button class="btn" id="importCancelBtn">Zavřít</button>
+        </div>
+        <div class="import-err" id="importErr"></div>
+      </div>
+
+      <div class="deploy-panel" id="deployPanel" hidden>
+        <div class="deploy-creds">
+          <div class="deploy-creds-title">Přihlašovací údaje T-Cloud</div>
+          <div class="deploy-creds-grid">
+            <label>Username
+              <input type="text" id="credUser" autocomplete="username" placeholder="roman.marcina@…">
+            </label>
+            <label>Password
+              <input type="password" id="credPass" autocomplete="current-password">
+            </label>
+            <label>OTP secret (2FA)
+              <input type="password" id="credOtp" autocomplete="off">
+            </label>
+          </div>
+        </div>
+        <div class="deploy-status" id="deployStatus"></div>
+        <div class="deploy-summary" id="deploySummary" hidden></div>
+        <div class="deploy-toolbar">
+          <button class="btn" id="copyLogBtn">Kopírovat log</button>
+        </div>
+        <div class="deploy-log" id="deployLog"></div>
+      </div>
+    </section>
+
+    <section class="card costing">
+      <h2>Costing / měsíc</h2>
+      <div class="cost-commit">
+        <label for="commitSel">Délka závazku</label>
+        <select id="commitSel" title="Přepočítat cenu podle délky závazku"></select>
+      </div>
+      <div class="cost-summary">
+        <div class="cost-item"><span class="cost-label">Virtuální stroje</span><span id="vmCount">0</span></div>
+        <div class="cost-item"><span class="cost-label">CPU celkem</span><span id="totCpu">0 GHz</span></div>
+        <div class="cost-item"><span class="cost-label">RAM celkem</span><span id="totRam">0 GiB</span></div>
+        <div class="cost-item"><span class="cost-label">Disk celkem</span><span id="totDisk">0 GB</span></div>
+        <div class="cost-item"><span class="cost-label">Cloudlety celkem (PaaS)</span><span id="totCloudlets" title="1 cloudlet = 128 MiB RAM + 400 MHz CPU; cena a složení na PaaS kalkulačce">0</span></div>
+        <div class="cost-item"><span class="cost-label">CPU</span><span id="totCpuCost">0</span></div>
+        <div class="cost-item"><span class="cost-label">RAM</span><span id="totRamCost">0</span></div>
+        <div class="cost-item"><span class="cost-label">Disk</span><span id="totDiskCost">0</span></div>
+        <div class="cost-item"><span class="cost-label">Networking a FW</span><span id="totNetFw">0</span></div>
+        <div class="cost-item cost-total"><span class="cost-label">Celkem</span><span id="totPrice">0</span></div>
+      </div>
+      <div class="cost-disc" id="diskTierDetail"></div>
+      <div class="cost-group-title">Cena podle skupiny</div>
+      <div class="cost-group" id="groupCostDetail"></div>
+      <div class="cost-rate-note" id="rateNote"></div>
+      <table class="cost-table" id="costTable">
+        <thead><tr><th>VM</th><th>Skupina</th><th>CPU GHz</th><th>RAM GiB</th><th>Disk GB</th><th>Tier</th><th>CPU</th><th>RAM</th><th>Disk</th><th>Celkem</th></tr></thead>
+        <tbody id="costTableBody"></tbody>
+      </table>
+    </section>
+
+  </div>
+
+  <!-- VM edit modal -->
+  <div class="modal" id="vmModal">
+    <div class="modal-box">
+      <h3 id="modalTitle">Upravit VM</h3>
+      <label>Název <input type="text" id="mName"></label>
+      <label>Skupina
+        <select id="mGroup">
+          <option value="app">Aplikační</option>
+          <option value="db">Databázový</option>
+          <option value="other">Další VM</option>
+          <option value="opnsense">OPNsense (firewall)</option>
+        </select>
+      </label>
+      <label>CPU (GHz) <input type="number" id="mCpu" step="0.1" min="0"></label>
+      <label>RAM (GiB) <input type="number" id="mRam" step="0.25" min="0"></label>
+      <label>Disk (GB) <input type="number" id="mDisk" step="1" min="0"></label>
+      <label>Disk tier
+        <select id="mTier">
+          <option value="superfast">Super Fast (10000 IOPS)</option>
+          <option value="fast">Fast (5000 IOPS)</option>
+          <option value="standard">Standard (3000 IOPS)</option>
+          <option value="basic">Basic (600 IOPS)</option>
+        </select>
+      </label>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="mSave">Uložit</button>
+        <button class="btn" id="mCancel">Zrušit</button>
+        <button class="btn btn-danger" id="mDelete">Smazat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VLAN edit modal -->
+  <div class="modal" id="vlanModal">
+    <div class="modal-box">
+      <h3 id="vlanTitle">Upravit VLAN</h3>
+      <label>Název VLAN <input type="text" id="vName"></label>
+      <label>VLAN UUID <input type="text" id="vUuid" placeholder="prázdné = DHCP při nasazení"></label>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="vSave">Uložit</button>
+        <button class="btn" id="vCancel">Zrušit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Group rename modal -->
+  <div class="modal" id="groupModal">
+    <div class="modal-box">
+      <h3 id="groupTitle">Upravit skupinu</h3>
+      <label>Název skupiny <input type="text" id="gName"></label>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="gSave">Uložit</button>
+        <button class="btn" id="gCancel">Zrušit</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="socket.io/socket.io.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
