@@ -4,6 +4,7 @@
   "description": "IaaS API management - build servers in Jelastic/Virtuozzo from UI blueprints",
   "main": "server.js",
   "scripts": {
+    "build": "echo \"No build step required\"; exit 0",
     "start": "node server.js"
   },
   "dependencies": {
