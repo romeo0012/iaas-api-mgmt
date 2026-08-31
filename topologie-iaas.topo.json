@@ -1,0 +1,40 @@
+{
+  "envName": "topologie-iaas",
+  "commitment": 12,
+  "groups": {
+    "app": { "name": "Aplikační servery", "label": "Aplikační", "vlanName": "APP", "diskTier": "standard" },
+    "db": { "name": "Databázové servery", "label": "Databázový", "vlanName": "DATA", "diskTier": "fast" },
+    "other": { "name": "Ostatní servery", "label": "Ostatní", "vlanName": "LAN", "diskTier": "superfast" }
+  },
+  "vlans": {
+    "app": { "name": "APP", "uuid": "" },
+    "db": { "name": "DATA", "uuid": "" },
+    "other": { "name": "LAN", "uuid": "" }
+  },
+  "nodes": [
+    { "group": "app", "name": "dsm", "label": "", "cpuGHz": 5.2, "ramGB": 8, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "Felis", "label": "", "cpuGHz": 5.2, "ramGB": 8, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "Gepard", "label": "", "cpuGHz": 2.6, "ramGB": 6, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "Irbis", "label": "", "cpuGHz": 5.2, "ramGB": 32, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "Jaguar", "label": "", "cpuGHz": 5.2, "ramGB": 16, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "Jaguarundi", "label": "", "cpuGHz": 10.4, "ramGB": 8, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "Lev", "label": "", "cpuGHz": 20.8, "ramGB": 16, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "Manul", "label": "", "cpuGHz": 5.2, "ramGB": 4, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "Multicash", "label": "", "cpuGHz": 10.4, "ramGB": 16, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "nakivo-transporter-15", "label": "", "cpuGHz": 15.6, "ramGB": 4, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "Panter", "label": "", "cpuGHz": 20.8, "ramGB": 16, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "Puma", "label": "", "cpuGHz": 5.2, "ramGB": 16, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "Serval", "label": "", "cpuGHz": 10.4, "ramGB": 4, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "SMA500v", "label": "", "cpuGHz": 2.6, "ramGB": 2.15, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "Zabbix", "label": "", "cpuGHz": 10.4, "ramGB": 16, "diskGB": 100, "diskTier": "standard" },
+    { "group": "db", "name": "Banky", "label": "", "cpuGHz": 10.4, "ramGB": 16, "diskGB": 100, "diskTier": "fast" },
+    { "group": "db", "name": "Karakal", "label": "", "cpuGHz": 5.2, "ramGB": 8, "diskGB": 100, "diskTier": "fast" },
+    { "group": "db", "name": "Leopard", "label": "", "cpuGHz": 10.4, "ramGB": 24, "diskGB": 100, "diskTier": "fast" },
+    { "group": "db", "name": "Levhart", "label": "", "cpuGHz": 10.4, "ramGB": 16, "diskGB": 100, "diskTier": "fast" },
+    { "group": "db", "name": "Margay", "label": "", "cpuGHz": 20.8, "ramGB": 64, "diskGB": 100, "diskTier": "fast" },
+    { "group": "db", "name": "SMA8200v", "label": "", "cpuGHz": 10.4, "ramGB": 8, "diskGB": 100, "diskTier": "fast" },
+    { "group": "db", "name": "Unifi-recovered", "label": "", "cpuGHz": 5.2, "ramGB": 4, "diskGB": 100, "diskTier": "fast" },
+    { "group": "other", "name": "Backup-Nakivo", "label": "", "cpuGHz": 20.8, "ramGB": 64, "diskGB": 100, "diskTier": "superfast" },
+    { "group": "other", "name": "Rysec", "label": "", "cpuGHz": 5.2, "ramGB": 48, "diskGB": 100, "diskTier": "superfast" }
+  ]
+}
