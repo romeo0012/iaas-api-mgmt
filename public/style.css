@@ -271,18 +271,32 @@ body {
   margin-top: 12px;
   padding-top: 10px;
   border-top: 2px dashed #ccd4e0;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 .cost-paas-title {
-  grid-column: 1 / -1;
   font-size: 12px;
   font-weight: 700;
   color: #7a5bd6;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   margin-bottom: 2px;
+}
+.cost-paas-level {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.cost-paas-lvl-title {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  font-weight: 700;
+  color: #556;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid #e6e0f5;
+  padding-bottom: 4px;
 }
 .cost-paas .cost-item { background: #faf8ff; border-color: #e6e0f5; }
 .cost-paas .cost-item .cost-label { color: #8a79c9; }

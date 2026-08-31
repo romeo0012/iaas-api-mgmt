@@ -116,10 +116,27 @@
       </div>
       <div class="cost-paas" id="paasCloudlets">
         <div class="cost-paas-title">PaaS Costing / měsíc</div>
-        <div class="cost-item"><span class="cost-label">Cloudlety</span><span id="totCloudlets" title="1 cloudlet = 128 MiB RAM + 400 MHz CPU; cena a složení na PaaS kalkulačce">0</span></div>
-        <div class="cost-item"><span class="cost-label">RAM</span><span id="totCloudRam">0 GiB</span></div>
-        <div class="cost-item"><span class="cost-label">CPU</span><span id="totCloudCpu">0 GHz</span></div>
-        <div class="cost-item cost-total"><span class="cost-label">Cena (PaaS)</span><span id="totCloudCost">0 Kč</span></div>
+        <div class="cost-paas-level">
+          <div class="cost-paas-lvl-title">Limity</div>
+          <div class="cost-item"><span class="cost-label">Cloudlety</span><span id="totCloudlets" title="1 cloudlet = 128 MiB RAM + 400 MHz CPU; cena a složení na PaaS kalkulačce">0</span></div>
+          <div class="cost-item"><span class="cost-label">RAM</span><span id="totCloudRam">0 GiB</span></div>
+          <div class="cost-item"><span class="cost-label">CPU</span><span id="totCloudCpu">0 GHz</span></div>
+          <div class="cost-item cost-total"><span class="cost-label">Cena (PaaS)</span><span id="totCloudCost">0 Kč</span></div>
+        </div>
+        <div class="cost-paas-level">
+          <div class="cost-paas-lvl-title">Optimální (60 % limitů)</div>
+          <div class="cost-item"><span class="cost-label">Cloudlety</span><span id="totCloudletsOpt">0</span></div>
+          <div class="cost-item"><span class="cost-label">RAM</span><span id="totCloudRamOpt">0 GiB</span></div>
+          <div class="cost-item"><span class="cost-label">CPU</span><span id="totCloudCpuOpt">0 GHz</span></div>
+          <div class="cost-item cost-total"><span class="cost-label">Cena (PaaS)</span><span id="totCloudCostOpt">0 Kč</span></div>
+        </div>
+        <div class="cost-paas-level">
+          <div class="cost-paas-lvl-title">Rezervace (20 % ceny limitů)</div>
+          <div class="cost-item"><span class="cost-label">Cloudlety</span><span id="totCloudletsRes">0</span></div>
+          <div class="cost-item"><span class="cost-label">RAM</span><span id="totCloudRamRes">0 GiB</span></div>
+          <div class="cost-item"><span class="cost-label">CPU</span><span id="totCloudCpuRes">0 GHz</span></div>
+          <div class="cost-item cost-total"><span class="cost-label">Cena (PaaS)</span><span id="totCloudCostRes">0 Kč</span></div>
+        </div>
       </div>
       <div class="cost-disc" id="diskTierDetail"></div>
       <div class="cost-group-title">Cena podle skupiny</div>

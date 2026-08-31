@@ -126,6 +126,22 @@ function renderCosting(costing) {
   $('totCloudRam').textContent = fmt1(costing.cloudletRamGiB != null ? costing.cloudletRamGiB : 0) + ' GiB'
   $('totCloudCpu').textContent = fmt1(costing.cloudletCpuGHz != null ? costing.cloudletCpuGHz : 0) + ' GHz'
   $('totCloudCost').textContent = fmt(costing.cloudletCostCZK != null ? costing.cloudletCostCZK : 0) + ' Kč'
+
+  const baseCloudlets = t.cloudlets != null ? t.cloudlets : 0
+  const baseRam = costing.cloudletRamGiB != null ? costing.cloudletRamGiB : 0
+  const baseCpu = costing.cloudletCpuGHz != null ? costing.cloudletCpuGHz : 0
+  const baseCost = costing.cloudletCostCZK != null ? costing.cloudletCostCZK : 0
+  const paasLevel = (lvl, pct) => {
+    const cl = Math.round(baseCloudlets * pct)
+    const el = $('totCloudlets' + lvl)
+    if (el) el.textContent = fmt(cl)
+    $('totCloudRam' + lvl).textContent = fmt1(baseRam * pct) + ' GiB'
+    $('totCloudCpu' + lvl).textContent = fmt1(baseCpu * pct) + ' GHz'
+    $('totCloudCost' + lvl).textContent = fmt(baseCost * pct) + ' Kč'
+  }
+  paasLevel('Opt', 0.6)
+  paasLevel('Res', 0.2)
+
   $('totCpuCost').textContent = fmt(t.cpuCostCZK) + ' Kč'
   $('totRamCost').textContent = fmt(t.ramCostCZK) + ' Kč'
   $('totDiskCost').textContent = fmt(t.diskCostCZK) + ' Kč'
