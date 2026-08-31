@@ -17,6 +17,7 @@ function tierLabel(t) { return TIER_LABELS[t] || 'Super Fast' }
 let state = { nodes: [], vlans: {}, groups: {}, wanIp: '', commitment: 12, envName: '' }
 let editingId = null
 let editingVlan = null
+let lastCosting = null
 
 // ---- rendering ----
 
@@ -113,6 +114,7 @@ function vmHtml(n) {
 }
 
 function renderCosting(costing) {
+  lastCosting = costing
   const t = costing.totals
   const commitSel = $('commitSel')
   if (commitSel) { state.commitment = costing.commitmentMonths; commitSel.value = String(costing.commitmentMonths) }
@@ -447,6 +449,141 @@ $('ulTopoFile').onchange = e => {
   if (f) uploadTopologyFile(f)
   e.target.value = ''
 }
+
+// ---- export Excel (SpreadsheetML 2003) ----
+
+function xlEscape(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\r?\n/g, '&#10;')
+}
+
+function xlCell(value, type, style) {
+  const t = type || 'String'
+  const attrs = ['ss:Type="' + t + '"']
+  if (style) attrs.push('ss:StyleID="' + style + '"')
+  return `<Cell><Data ${attrs.join(' ')}>${t === 'Number' ? value : xlEscape(value)}</Data></Cell>`
+}
+
+function xlRow(values, style) {
+  const cells = (values || []).map(v => {
+    if (typeof v === 'number' && isFinite(v)) return xlCell(v, 'Number', style)
+    return xlCell(v, 'String', style)
+  }).join('')
+  return `<Row>${cells}</Row>`
+}
+
+function exportExcel() {
+  const c = lastCosting
+  const nodes = (c && c.perNode) || []
+  const t = (c && c.totals) || {}
+  const env = (state.nodes[0] && state.nodes[0]._envName) || state.envName || 'topologie'
+  const commit = (c && (c.commitmentLabel || (c.commitmentMonths + ' měs.'))) || ''
+
+  let xml = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Styles>
+ <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Center"/><Font ss:FontName="Calibri" ss:Size="11"/></Style>
+ <Style ss:ID="title"><Font ss:Bold="1" ss:Size="14"/></Style>
+ <Style ss:ID="hdr"><Font ss:Bold="1"/><Interior ss:Color="#DDEBF7" ss:Pattern="Solid"/></Style>
+ <Style ss:ID="bold"><Font ss:Bold="1"/></Style>
+ <Style ss:ID="total"><Font ss:Bold="1"/><Interior ss:Color="#D6E4F0" ss:Pattern="Solid"/></Style>
+</Styles>`
+
+  // Přehled
+  const ov = []
+  ov.push(xlRow([env ? ('Topologie: ' + env) : 'IaaS Architektura'], 'title'))
+  if (commit) ov.push(xlRow(['Závazek: ' + commit]))
+  ov.push(xlRow(['Počet VM: ' + nodes.length]))
+  ov.push(xlRow([]))
+  ov.push(xlRow(['Celkem (IaaS)', ''], 'hdr'))
+  ov.push(xlRow(['CPU celkem', fmt(t.cpuGHz || 0) + ' GHz']))
+  ov.push(xlRow(['RAM celkem', fmt(t.ramGB || 0) + ' GiB']))
+  ov.push(xlRow(['Disk celkem', fmt(t.diskGB || 0) + ' GB']))
+  ov.push(xlRow(['Cena CPU', fmt(t.cpuCostCZK || 0) + ' Kč']))
+  ov.push(xlRow(['Cena RAM', fmt(t.ramCostCZK || 0) + ' Kč']))
+  ov.push(xlRow(['Cena Disk', fmt(t.diskCostCZK || 0) + ' Kč']))
+  ov.push(xlRow(['Networking a FW', fmt((t.networkingFwCZK != null ? t.networkingFwCZK : 0)) + ' Kč']))
+  ov.push(xlRow(['Celkem (IaaS)', t.totalFormatted || '0 Kč'], 'total'))
+  ov.push(xlRow([]))
+  ov.push(xlRow(['PaaS (informativně)', ''], 'hdr'))
+  ov.push(xlRow(['Cloudlety', (t.cloudlets != null ? fmt(t.cloudlets) : '0')]))
+  ov.push(xlRow(['CPU ekv.', fmt1((c && c.cloudletCpuGHz != null ? c.cloudletCpuGHz : 0)) + ' GHz']))
+  ov.push(xlRow(['RAM ekv.', fmt1((c && c.cloudletRamGiB != null ? c.cloudletRamGiB : 0)) + ' GiB']))
+  ov.push(xlRow(['Cena (PaaS)', fmt((c && c.cloudletCostCZK != null ? c.cloudletCostCZK : 0)) + ' Kč']))
+  xml += `<Worksheet ss:Name="Přehled"><Table>${ov.join('')}</Table></Worksheet>`
+
+  // Virtuální stroje
+  const sv = []
+  sv.push(xlRow(['VM', 'Skupina', 'CPU GHz', 'RAM GiB', 'Disk GB', 'Tier', 'CPU Kč', 'RAM Kč', 'Disk Kč', 'Celkem Kč'], 'hdr'))
+  for (const n of nodes) {
+    sv.push(xlRow([n.name, groupLabel(n.group), n.cpuGHz, n.ramGB, n.diskGB, tierLabel(n.diskTier),
+      n.cpuCostCZK, n.ramCostCZK, n.diskCostCZK, n.totalFormatted]))
+  }
+  xml += `<Worksheet ss:Name="Virtuální stroje"><Table>${sv.join('')}</Table></Worksheet>`
+
+  // Disk podle tieru
+  const disc = (c && c.diskByTier) || []
+  const sd = []
+  sd.push(xlRow(['Tier', 'Disk GB', 'Sazba Kč/GB', 'Cena Kč'], 'hdr'))
+  for (const x of disc) sd.push(xlRow([x.label, x.diskGB, x.rate, x.diskCostCZK]))
+  xml += `<Worksheet ss:Name="Disk podle tieru"><Table>${sd.join('')}</Table></Worksheet>`
+
+  // Cena podle skupiny
+  const groupMap = {}
+  for (const n of nodes) {
+    if (!groupMap[n.group]) groupMap[n.group] = { total: 0, count: 0 }
+    groupMap[n.group].total += n.totalCZK
+    groupMap[n.group].count++
+  }
+  const sg = []
+  sg.push(xlRow(['Skupina', 'Počet VM', 'Cena Kč'], 'hdr'))
+  for (const g of Object.keys(groupMap)) {
+    const d = groupMap[g]
+    sg.push(xlRow([groupHead(g) || g, d.count, d.total]))
+  }
+  xml += `<Worksheet ss:Name="Cena podle skupiny"><Table>${sg.join('')}</Table></Worksheet>`
+
+  // Skupiny a VLAN
+  const svl = []
+  svl.push(xlRow(['Skupina', 'Název', 'Label', 'VLAN', 'UUID', 'Disk tier'], 'hdr'))
+  for (const k of Object.keys(state.groups || {})) {
+    const g = state.groups[k] || {}
+    const v = (state.vlans || {})[k] || {}
+    svl.push(xlRow([k, g.name || '', g.label || '', v.name || '', v.uuid || '', tierLabel(g.diskTier)]))
+  }
+  xml += `<Worksheet ss:Name="Skupiny a VLAN"><Table>${svl.join('')}</Table></Worksheet>`
+
+  // Sazby
+  const rt = c && c.diskTiers
+  const sr = []
+  sr.push(xlRow(['Sazby', ''], 'hdr'))
+  sr.push(xlRow(['CPU', fmt(c.rateCpuGHz || 0) + ' Kč/GHz']))
+  sr.push(xlRow(['RAM', fmt(c.rateRamGB || 0) + ' Kč/GB']))
+  sr.push(xlRow(['Závazek', commit]))
+  sr.push(xlRow([]))
+  sr.push(xlRow(['Disk Kč/GB', c.commitmentMonths + ' měs.'], 'hdr'))
+  for (const tk of Object.values(rt || {})) {
+    const rate = (tk.rates && tk.rates[c.commitmentMonths]) || 0
+    sr.push(xlRow([tk.label, rate]))
+  }
+  xml += `<Worksheet ss:Name="Sazby"><Table>${sr.join('')}</Table></Worksheet>`
+
+  xml += `</Workbook>`
+
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = (env || 'topologie') + '.xls'
+  a.click()
+  URL.revokeObjectURL(a.href)
+  showStatus('Excel stažen ✓')
+}
+
+$('xlBtn').onclick = exportExcel
 
 // ---- deploy ----
 
