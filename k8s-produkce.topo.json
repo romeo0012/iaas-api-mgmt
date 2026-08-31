@@ -5,12 +5,14 @@
     "app": { "name": "Kubernetes (workers + control plane)", "label": "Aplikační", "vlanName": "APP", "diskTier": "standard" },
     "db": { "name": "Databázové & etcd", "label": "Databázový", "vlanName": "DATA", "diskTier": "fast" },
     "other": { "name": "Storage, monitoring & logging", "label": "Ostatní", "vlanName": "LAN", "diskTier": "superfast" },
+    "codenow": { "name": "CodeNOW workers", "label": "CodeNOW", "vlanName": "CODENOW", "diskTier": "standard" },
     "opnsense": { "name": "Firewall OPNsense", "label": "Firewall", "vlanName": "WAN", "diskTier": "standard" }
   },
   "vlans": {
     "app": { "name": "APP", "uuid": "" },
     "db": { "name": "DATA", "uuid": "" },
     "other": { "name": "LAN", "uuid": "" },
+    "codenow": { "name": "CODENOW", "uuid": "" },
     "opnsense": { "name": "WAN", "uuid": "" }
   },
   "nodes": [
@@ -34,6 +36,8 @@
     { "group": "other", "name": "prometheus", "label": "Prometheus", "cpuGHz": 10.4, "ramGB": 16, "diskGB": 500, "diskTier": "superfast" },
     { "group": "other", "name": "grafana", "label": "Grafana", "cpuGHz": 5.2, "ramGB": 8, "diskGB": 100, "diskTier": "superfast" },
     { "group": "other", "name": "elk-loki", "label": "Logging (ELK/Loki)", "cpuGHz": 20.8, "ramGB": 32, "diskGB": 2000, "diskTier": "superfast" },
-    { "group": "other", "name": "backup", "label": "Backup (Nakivo)", "cpuGHz": 10.4, "ramGB": 8, "diskGB": 5000, "diskTier": "superfast" }
+    { "group": "other", "name": "backup", "label": "Backup (Nakivo)", "cpuGHz": 10.4, "ramGB": 8, "diskGB": 5000, "diskTier": "superfast" },
+    { "group": "codenow", "name": "codenow-worker-01", "label": "CodeNOW worker 1", "cpuGHz": 20.8, "ramGB": 32, "diskGB": 300, "diskTier": "standard" },
+    { "group": "codenow", "name": "codenow-worker-02", "label": "CodeNOW worker 2", "cpuGHz": 20.8, "ramGB": 32, "diskGB": 300, "diskTier": "standard" }
   ]
 }
