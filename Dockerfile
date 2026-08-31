@@ -10,8 +10,8 @@ RUN npm ci --only=production
 COPY . .
 
 # Run as non-root (satisfies runAsNonRoot enforced by the CodeNOW helm chart)
-RUN chown -R node:node /usr/src/app
-USER node
+# Use a numeric UID so Kubernetes can verify the user is non-root.
+USER 1000
 
 # Service port exposed to CodeNOW (see .codenow.yaml runtime.port)
 ENV PORT=3000
