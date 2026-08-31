@@ -7,7 +7,7 @@ body {
   color: #222;
 }
 
-.container { max-width: 980px; margin: 0 auto; padding: 24px 16px; }
+.container { max-width: none; margin: 0 auto; padding: 24px 28px; }
 
 .page-header h1 { margin-bottom: 4px; }
 .page-header p { color: #666; margin: 0 0 16px; }
