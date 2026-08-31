@@ -1,0 +1,39 @@
+{
+  "envName": "k8s-produkce",
+  "commitment": 12,
+  "groups": {
+    "app": { "name": "Kubernetes (workers + control plane)", "label": "Aplikační", "vlanName": "APP", "diskTier": "standard" },
+    "db": { "name": "Databázové & etcd", "label": "Databázový", "vlanName": "DATA", "diskTier": "fast" },
+    "other": { "name": "Storage, monitoring & logging", "label": "Ostatní", "vlanName": "LAN", "diskTier": "superfast" },
+    "opnsense": { "name": "Firewall OPNsense", "label": "Firewall", "vlanName": "WAN", "diskTier": "standard" }
+  },
+  "vlans": {
+    "app": { "name": "APP", "uuid": "" },
+    "db": { "name": "DATA", "uuid": "" },
+    "other": { "name": "LAN", "uuid": "" },
+    "opnsense": { "name": "WAN", "uuid": "" }
+  },
+  "nodes": [
+    { "group": "opnsense", "name": "opnsense-firewall", "label": "", "cpuGHz": 10.4, "ramGB": 4, "diskGB": 20, "diskTier": "standard" },
+    { "group": "app", "name": "cp-01", "label": "Control plane 1", "cpuGHz": 10.4, "ramGB": 8, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "cp-02", "label": "Control plane 2", "cpuGHz": 10.4, "ramGB": 8, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "cp-03", "label": "Control plane 3", "cpuGHz": 10.4, "ramGB": 8, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "ingress-01", "label": "Ingress / LB 1", "cpuGHz": 10.4, "ramGB": 8, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "ingress-02", "label": "Ingress / LB 2", "cpuGHz": 10.4, "ramGB": 8, "diskGB": 100, "diskTier": "standard" },
+    { "group": "app", "name": "worker-01", "label": "Worker 1", "cpuGHz": 20.8, "ramGB": 32, "diskGB": 300, "diskTier": "standard" },
+    { "group": "app", "name": "worker-02", "label": "Worker 2", "cpuGHz": 20.8, "ramGB": 32, "diskGB": 300, "diskTier": "standard" },
+    { "group": "app", "name": "worker-03", "label": "Worker 3", "cpuGHz": 20.8, "ramGB": 32, "diskGB": 300, "diskTier": "standard" },
+    { "group": "app", "name": "worker-04", "label": "Worker 4", "cpuGHz": 20.8, "ramGB": 32, "diskGB": 300, "diskTier": "standard" },
+    { "group": "app", "name": "worker-05", "label": "Worker 5", "cpuGHz": 20.8, "ramGB": 32, "diskGB": 300, "diskTier": "standard" },
+    { "group": "db", "name": "etcd-01", "label": "etcd 1", "cpuGHz": 10.4, "ramGB": 16, "diskGB": 200, "diskTier": "fast" },
+    { "group": "db", "name": "etcd-02", "label": "etcd 2", "cpuGHz": 10.4, "ramGB": 16, "diskGB": 200, "diskTier": "fast" },
+    { "group": "db", "name": "etcd-03", "label": "etcd 3", "cpuGHz": 10.4, "ramGB": 16, "diskGB": 200, "diskTier": "fast" },
+    { "group": "db", "name": "postgres-01", "label": "PostgreSQL", "cpuGHz": 20.8, "ramGB": 32, "diskGB": 500, "diskTier": "fast" },
+    { "group": "db", "name": "redis-01", "label": "Redis / NoSQL", "cpuGHz": 10.4, "ramGB": 16, "diskGB": 100, "diskTier": "fast" },
+    { "group": "other", "name": "nfs-storage", "label": "NFS / Storage", "cpuGHz": 20.8, "ramGB": 16, "diskGB": 2000, "diskTier": "superfast" },
+    { "group": "other", "name": "prometheus", "label": "Prometheus", "cpuGHz": 10.4, "ramGB": 16, "diskGB": 500, "diskTier": "superfast" },
+    { "group": "other", "name": "grafana", "label": "Grafana", "cpuGHz": 5.2, "ramGB": 8, "diskGB": 100, "diskTier": "superfast" },
+    { "group": "other", "name": "elk-loki", "label": "Logging (ELK/Loki)", "cpuGHz": 20.8, "ramGB": 32, "diskGB": 2000, "diskTier": "superfast" },
+    { "group": "other", "name": "backup", "label": "Backup (Nakivo)", "cpuGHz": 10.4, "ramGB": 8, "diskGB": 5000, "diskTier": "superfast" }
+  ]
+}
