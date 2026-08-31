@@ -131,6 +131,12 @@ function renderCosting(costing) {
   const baseRam = costing.cloudletRamGiB != null ? costing.cloudletRamGiB : 0
   const baseCpu = costing.cloudletCpuGHz != null ? costing.cloudletCpuGHz : 0
   const baseCost = costing.cloudletCostCZK != null ? costing.cloudletCostCZK : 0
+  const optimalPct = (typeof window.PAAS_OPTIMAL_PCT === 'number' ? window.PAAS_OPTIMAL_PCT : 60) / 100
+  const reservePct = (typeof window.PAAS_RESERVE_PCT === 'number' ? window.PAAS_RESERVE_PCT : 20) / 100
+  const optTitle = $('paasOptTitle')
+  if (optTitle) optTitle.textContent = `Optimální (${Math.round(optimalPct * 100)} % limitů)`
+  const resTitle = $('paasResTitle')
+  if (resTitle) resTitle.textContent = `Rezervace (${Math.round(reservePct * 100)} % ceny limitů)`
   const paasLevel = (lvl, pct) => {
     const cl = Math.round(baseCloudlets * pct)
     const el = $('totCloudlets' + lvl)
@@ -139,8 +145,8 @@ function renderCosting(costing) {
     $('totCloudCpu' + lvl).textContent = fmt1(baseCpu * pct) + ' GHz'
     $('totCloudCost' + lvl).textContent = fmt(baseCost * pct) + ' Kč'
   }
-  paasLevel('Opt', 0.6)
-  paasLevel('Res', 0.2)
+  paasLevel('Opt', optimalPct)
+  paasLevel('Res', reservePct)
 
   $('totCpuCost').textContent = fmt(t.cpuCostCZK) + ' Kč'
   $('totRamCost').textContent = fmt(t.ramCostCZK) + ' Kč'

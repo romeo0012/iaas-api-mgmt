@@ -10,6 +10,10 @@ IaaS_COMMITMENT_MONTHS=12
 # PaaS: cena za 1 cloudlet (128 MiB RAM + 400 MHz CPU) / mesiac v Kc (informat.- len Cloudlety)
 IaaS_CLOUDLET_RATE_CZK=138.56
 
+# PaaS Costing / mesiac: percenta limitov pre riadky Optimálny / Rezervácia
+IaaS_PAAS_OPTIMAL_PCT=60
+IaaS_PAAS_RESERVE_PCT=20
+
 # Business Cloud IaaS: fixny mesacny poplatok za siet + firewall (Kc/mesiac)
 IaaS_NETWORK_FW_RATE_CZK=108
 

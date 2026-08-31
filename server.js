@@ -26,7 +26,11 @@ app.use(BASE_PATH, (req, res, next) => {
   fs.readFile(filePath, 'utf-8', (err, html) => {
     if (err) return next()
     const baseTag = BASE_PATH ? `<base href="${BASE_PATH}/">` : ''
-    const script = `<script>window.BASE_PATH=${JSON.stringify(BASE_PATH)};</script>`
+    const paasOptimalPct = Number(process.env.IaaS_PAAS_OPTIMAL_PCT)
+    const paasReservePct = Number(process.env.IaaS_PAAS_RESERVE_PCT)
+    const script = `<script>window.BASE_PATH=${JSON.stringify(BASE_PATH)};` +
+      `window.PAAS_OPTIMAL_PCT=${isFinite(paasOptimalPct) && paasOptimalPct > 0 ? paasOptimalPct : 60};` +
+      `window.PAAS_RESERVE_PCT=${isFinite(paasReservePct) && paasReservePct > 0 ? paasReservePct : 20};</script>`
     res.send(html.replace('</head>', baseTag + script + '</head>'))
   })
 })
