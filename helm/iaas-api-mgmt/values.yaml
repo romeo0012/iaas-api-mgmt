@@ -1,0 +1,49 @@
+# Default values for iaas-api-mgmt.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+configHash: "1" # configuration change detection
+codenow:
+  instance: ""
+  applicationName: ""
+  applicationRuntimeName: ""
+  applicationVersion: ""
+  componentRuntimeName: "iaas-api-mgmt"
+  componentName: "iaas-api-mgmt"
+  componentVersion: ${project.version}
+  templateId: ""
+  domainName: "tmobile-demo.codenow.com"
+  environmentId: ""
+  serviceMeshGateway: "istio-system/public-gateway"
+
+environmentVariables: {}
+
+buildNumber: "${env.BUILD_NUMBER}"
+
+image:
+  pullPolicy: IfNotPresent
+  pullSecrets:
+    - name: docker-user-registry
+
+service:
+  type: ClusterIP
+  port: 3000
+  externalEndpointEnabled: true
+
+fluentbit:
+  istioProxy:
+    enabled: true
+    parser: envoy-logging-filter-parser
+  parser: oxus-app-component-json
+
+configFiles: {}
+environmentVariables: {}
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

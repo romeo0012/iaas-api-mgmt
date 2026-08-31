@@ -1,0 +1,35 @@
+{{- if .Values.service.externalEndpointEnabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Values.codenow.componentRuntimeName }}-service
+  namespace: {{ .Release.Namespace }}
+spec:
+  gateways:
+  - {{ .Values.codenow.serviceMeshGateway }}
+  hosts:
+    - {{ .Values.codenow.componentRuntimeName }}-{{ .Release.Namespace }}.{{ .Values.codenow.domainName }}
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: {{ .Values.codenow.componentRuntimeName }}.{{ .Release.Namespace }}.svc.cluster.local
+        port:
+          number: 80
+    corsPolicy:
+      allowOrigins:
+        - exact: '*'
+      allowMethods:
+        - POST
+        - GET
+        - OPTIONS
+        - PUT
+        - DELETE
+      allowHeaders:
+        - "*"
+      exposeHeaders:
+        - "*"
+      allowCredentials: true
+{{- end }}

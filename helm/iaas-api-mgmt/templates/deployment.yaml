@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.codenow.componentRuntimeName }}
+  labels:
+    app: {{ .Values.codenow.componentRuntimeName }}
+    app.kubernetes.io/name: {{ .Values.codenow.componentRuntimeName }}
+    release: {{ .Release.Name }}
+spec:
+  revisionHistoryLimit: 2
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.codenow.componentRuntimeName }}
+  template:
+    metadata:
+      annotations:
+        {{- if .Values.fluentbit.istioProxy.enabled }}
+        fluentbit.io/parser-istio-proxy: {{ .Values.fluentbit.istioProxy.parser }}
+        {{- end }}
+        fluentbit.io/parser-{{ .Values.codenow.componentRuntimeName }}: {{ .Values.fluentbit.parser }}
+        configHash: "{{ .Values.configHash }}"
+      labels:
+        app: {{ .Values.codenow.componentRuntimeName }}
+        app.kubernetes.io/name: {{ .Values.codenow.componentRuntimeName }}
+        app.kubernetes.io/instance: {{ .Values.codenow.instance }}
+        app.kubernetes.io/version: {{ .Values.codenow.componentVersion }}
+        app.kubernetes.io/component: {{ .Values.codenow.templateId }}
+        app.kubernetes.io/part-of: {{ .Values.codenow.applicationRuntimeName }}
+        app.kubernetes.io/package-version: {{ .Values.codenow.applicationVersion }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        {{- $configMapName := .Values.codenow.componentRuntimeName -}}
+        {{ range $key, $val := .Values.configFiles }}
+        - name: "conf{{ $key | replace "." "-" | lower | trimPrefix "-" }}"
+          configMap:
+            name: {{ $configMapName }}
+            items:
+            - key: {{ $key }}
+              path: {{ $key }}
+        {{- end }}
+        - name: tmpfs-1
+          emptyDir: {}
+      containers:
+        - name: {{ .Values.codenow.componentRuntimeName }}
+          image: "{{ .Values.image.repository }}:{{ .Chart.Version }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+          env:
+            {{- $cnSecretName := .Values.codenow.componentRuntimeName -}}
+            {{- range $key, $val := .Values.environmentVariables }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $cnSecretName }}
+                  key: {{ $key }}
+            {{- end }}
+          volumeMounts:
+            {{- range $key, $val := .Values.configFiles }}
+            - name: "conf{{ $key | replace "." "-" | lower | trimPrefix "-" }}"
+              mountPath: /usr/share/nginx/html/app/{{ $key }}
+              subPath: {{ $key}}
+            {{- end }}
+            - mountPath: /tmp
+              name: tmpfs-1
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
