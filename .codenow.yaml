@@ -21,7 +21,7 @@ build:
     triggers: []
 runtime:
   # Image is used as a base image for your runtime container
-  image: docker.io/nginxinc/nginx-unprivileged:stable-alpine
+  image: docker.io/node:20-alpine
   # Port on which the service will be exposed
   port: "3000"
   endpoints:
