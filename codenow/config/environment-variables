@@ -1,0 +1,22 @@
+# Runtime environment variables (CodeNOW) - hodnoty z .env.example.
+# PORT=3000 odpovida nasazenemu runtime portu; BASE_PATH je vynechany,
+# aby livenessProbe/readinessProbe na "/" vracely 200.
+
+PORT=3000
+
+# Business Cloud IaaS - "Resource Pool" costing (sucet cez vsetky VM)
+IaaS_COMMITMENT_MONTHS=12
+
+# PaaS: cena za 1 cloudlet (128 MiB RAM + 400 MHz CPU) / mesiac v Kc (informat.- len Cloudlety)
+IaaS_CLOUDLET_RATE_CZK=138.56
+
+# Business Cloud IaaS: fixny mesacny poplatok za siet + firewall (Kc/mesiac)
+IaaS_NETWORK_FW_RATE_CZK=108
+
+# T-Cloud (prg1.t-cloud.eu) - deployment do IaaS
+TCLOUD_BASE_URL=https://prg1.t-cloud.eu/api/2.0
+TCLOUD_REFERER=https://prg1.t-cloud.eu
+
+# Pozn: IaaS_CPU/RAM/DISK_RATE + TCLOUD_USERNAME/PASSWORD/OTP_SECRET/VLAN_UUID
+# su tu vynechane (prazdne overrides by prepisaly tabulkove sadzby / prihlasovacie
+# udaje sa zadavaju v UI deploy panelu).
