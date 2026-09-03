@@ -478,91 +478,104 @@ $('ulTopoFile').onchange = e => {
 
 // ---- export Excel (SheetJS -> binární .xlsx) ----
 
+// Procento alimentované pro „Optimální“ / „Rezervace“ (stejně jako renderCosting).
+function paasPct() {
+  return {
+    optimal: (typeof window.PAAS_OPTIMAL_PCT === 'number' ? window.PAAS_OPTIMAL_PCT : 60) / 100,
+    reserve: (typeof window.PAAS_RESERVE_PCT === 'number' ? window.PAAS_RESERVE_PCT : 20) / 100,
+  }
+}
+
 function exportExcel() {
   const c = lastCosting
   const nodes = (c && c.perNode) || []
   const t = (c && c.totals) || {}
   const env = (state.nodes[0] && state.nodes[0]._envName) || state.envName || 'topologie'
   const commit = (c && (c.commitmentLabel || (c.commitmentMonths + ' měs.'))) || ''
+  const { optimal, reserve } = paasPct()
 
-  const wb = XLSX.utils.book_new()
-
-  // Přehled
-  const ov = []
-  ov.push([env ? ('Topologie: ' + env) : 'IaaS Architektura'])
-  if (commit) ov.push(['Závazek: ' + commit])
-  ov.push(['Počet VM: ' + nodes.length])
-  ov.push([])
-  ov.push(['Celkem (IaaS)'])
-  ov.push(['CPU celkem', fmt(t.cpuGHz || 0) + ' GHz'])
-  ov.push(['RAM celkem', fmt(t.ramGB || 0) + ' GiB'])
-  ov.push(['Disk celkem', fmt(t.diskGB || 0) + ' GB'])
-  ov.push(['Cena CPU', fmt(t.cpuCostCZK || 0) + ' Kč'])
-  ov.push(['Cena RAM', fmt(t.ramCostCZK || 0) + ' Kč'])
-  ov.push(['Cena Disk', fmt(t.diskCostCZK || 0) + ' Kč'])
-  ov.push(['Networking a FW', fmt((t.networkingFwCZK != null ? t.networkingFwCZK : 0)) + ' Kč'])
-  ov.push(['Celkem (IaaS)', t.totalFormatted || '0 Kč'])
-  ov.push([])
-  ov.push(['PaaS (informativně)'])
-  ov.push(['Cloudlety', (t.cloudlets != null ? fmt(t.cloudlets) : '0')])
-  ov.push(['CPU ekv.', fmt1((c && c.cloudletCpuGHz != null ? c.cloudletCpuGHz : 0)) + ' GHz'])
-  ov.push(['RAM ekv.', fmt1((c && c.cloudletRamGiB != null ? c.cloudletRamGiB : 0)) + ' GiB'])
-  ov.push(['Cena (PaaS)', fmt((c && c.cloudletCostCZK != null ? c.cloudletCostCZK : 0)) + ' Kč'])
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ov), 'Přehled')
-
-  // Virtuální stroje
-  const sv = [
-    ['VM', 'Skupina', 'CPU GHz', 'RAM GiB', 'Disk GB', 'Tier', 'CPU Kč', 'RAM Kč', 'Disk Kč', 'Celkem Kč']
-  ]
-  for (const n of nodes) {
-    sv.push([n.name, groupLabel(n.group), n.cpuGHz, n.ramGB, n.diskGB, tierLabel(n.diskTier),
-      n.cpuCostCZK, n.ramCostCZK, n.diskCostCZK, n.totalFormatted])
+  const fmtKc = n => fmt(n == null ? 0 : n) + ' Kč'
+  const paasLevelRows = (pct) => {
+    const cl = Math.round((t.cloudlets || 0) * pct)
+    return [
+      ['Cloudlety', fmt(cl)],
+      ['RAM', fmt1((c.cloudletRamGiB || 0) * pct) + ' GiB'],
+      ['CPU', fmt1((c.cloudletCpuGHz || 0) * pct) + ' GHz'],
+      ['Cena (PaaS)', fmtKc((c.cloudletCostCZK || 0) * pct)],
+    ]
   }
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sv), 'Virtuální stroje')
 
-  // Disk podle tieru
-  const disc = (c && c.diskByTier) || []
-  const sd = [['Tier', 'Disk GB', 'Sazba Kč/GB', 'Cena Kč']]
-  for (const x of disc) sd.push([x.label, x.diskGB, x.rate, x.diskCostCZK])
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sd), 'Disk podle tieru')
+  const aoa = []
 
-  // Cena podle skupiny
+  aoa.push([env ? ('Topologie: ' + env) : 'IaaS Architektura'])
+  if (commit) aoa.push(['Závazek: ' + commit])
+  aoa.push([])
+
+  aoa.push(['IaaS Costing / měsíc'])
+  aoa.push(['Virtuální stroje', nodes.length])
+  aoa.push(['CPU celkem', fmt(t.cpuGHz || 0) + ' GHz'])
+  aoa.push(['RAM celkem', fmt(t.ramGB || 0) + ' GiB'])
+  aoa.push(['Disk celkem', fmt(t.diskGB || 0) + ' GB'])
+  aoa.push(['CPU', fmtKc(t.cpuCostCZK)])
+  aoa.push(['RAM', fmtKc(t.ramCostCZK)])
+  aoa.push(['Disk', fmtKc(t.diskCostCZK)])
+  aoa.push(['Networking a FW', fmtKc(t.networkingFwCZK != null ? t.networkingFwCZK : 0)])
+  aoa.push(['Celkem (IaaS)', t.totalFormatted || '0 Kč'])
+  aoa.push([])
+
+  aoa.push(['PaaS Costing / měsíc'])
+  aoa.push(['Limity'])
+  paasLevelRows(1).forEach(r => aoa.push(r))
+  aoa.push([`Optimální (${Math.round(optimal * 100)} % limitů)`])
+  paasLevelRows(optimal).forEach(r => aoa.push(r))
+  aoa.push([`Rezervace (${Math.round(reserve * 100)} % ceny limitů)`])
+  paasLevelRows(reserve).forEach(r => aoa.push(r))
+  aoa.push([])
+
+  const disc = c && c.diskByTier
+  if (disc && disc.length) {
+    aoa.push(['Disk podle tieru'])
+    for (const x of disc) aoa.push([x.label, `${fmt(x.diskGB)} GB × ${fmt(x.rate)} Kč`, fmtKc(x.diskCostCZK)])
+    aoa.push([])
+  }
+
   const groupMap = {}
   for (const n of nodes) {
     if (!groupMap[n.group]) groupMap[n.group] = { total: 0, count: 0 }
     groupMap[n.group].total += n.totalCZK
     groupMap[n.group].count++
   }
-  const sg = [['Skupina', 'Počet VM', 'Cena Kč']]
-  for (const g of Object.keys(groupMap)) {
-    const d = groupMap[g]
-    sg.push([groupHead(g) || g, d.count, d.total])
+  const order = Object.keys(state.groups || {}).filter(k => groupMap[k]).concat(
+    Object.keys(groupMap).filter(k => !(state.groups || {})[k]))
+  if (order.length) {
+    aoa.push(['Cena podle skupiny'])
+    for (const g of order) {
+      const d = groupMap[g]
+      aoa.push([groupHead(g) || g, d.count + ' VM', fmtKc(d.total)])
+    }
+    aoa.push([])
   }
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sg), 'Cena podle skupiny')
 
-  // Skupiny a VLAN
-  const svl = [['Skupina', 'Název', 'Label', 'VLAN', 'UUID', 'Disk tier']]
-  for (const k of Object.keys(state.groups || {})) {
-    const g = state.groups[k] || {}
-    const v = (state.vlans || {})[k] || {}
-    svl.push([k, g.name || '', g.label || '', v.name || '', v.uuid || '', tierLabel(g.diskTier)])
+  const tiers = (c && c.diskTiers) || {}
+  const tierLine = Object.values(tiers)
+    .map(tk => `${tk.label} ${fmt((tk.rates && tk.rates[c.commitmentMonths]) || 0)}`)
+    .join(' · ')
+  const rateNote = `CPU: ${fmt(c.rateCpuGHz)} Kč/GHz · RAM: ${fmt(c.rateRamGB)} Kč/GB · Disk (Kč/GB): ${tierLine} · závazek: ${commit || (c.commitmentMonths + ' měs.')}`
+  aoa.push([rateNote])
+  aoa.push([])
+
+  const header = ['VM', 'Skupina', 'CPU GHz', 'RAM GiB', 'Disk GB', 'Tier', 'CPU', 'RAM', 'Disk', 'Celkem']
+  aoa.push(header)
+  for (const n of nodes) {
+    aoa.push([n.name, groupLabel(n.group), n.cpuGHz, n.ramGB, n.diskGB, n.diskTierLabel,
+      fmtKc(n.cpuCostCZK), fmtKc(n.ramCostCZK), fmtKc(n.diskCostCZK), n.totalFormatted])
   }
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(svl), 'Skupiny a VLAN')
 
-  // Sazby
-  const rt = c && c.diskTiers
-  const sr = [['Sazby']]
-  sr.push(['CPU', fmt(c.rateCpuGHz || 0) + ' Kč/GHz'])
-  sr.push(['RAM', fmt(c.rateRamGB || 0) + ' Kč/GB'])
-  sr.push(['Závazek', commit])
-  sr.push([])
-  sr.push(['Disk Kč/GB', c.commitmentMonths + ' měs.'])
-  for (const tk of Object.values(rt || {})) {
-    const rate = (tk.rates && tk.rates[c.commitmentMonths]) || 0
-    sr.push([tk.label, rate])
-  }
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sr), 'Sazby')
+  const ws = XLSX.utils.aoa_to_sheet(aoa)
+  ws['!cols'] = [{ wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 16 }]
 
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Costing mesic')
   XLSX.writeFile(wb, (env || 'topologie') + '.xlsx')
   showStatus('Excel stažen ✓')
 }
