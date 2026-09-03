@@ -353,6 +353,7 @@ function openGroupModal(group) {
   editingGroup = group
   const g = state.groups[group] || {}
   $('gName').value = g.name || g.label || group
+  $('gLabel').value = g.label || ''
   $('groupTitle').textContent = 'Upravit skupinu — ' + (groupHead(group) || group)
   $('groupModal').classList.add('open')
 }
@@ -365,10 +366,13 @@ function closeGroupModal() {
 $('gSave').onclick = () => {
   if (!editingGroup) return
   const name = $('gName').value.trim()
-  if (name) {
+  const label = $('gLabel').value.trim()
+  if (name || label) {
     const g = state.groups[editingGroup] = state.groups[editingGroup] || {}
-    g.name = name
-    if (!g.label) g.label = name
+    if (name) g.name = name
+    if (label) g.label = label
+    if (!g.name && g.label) g.name = g.label
+    if (!g.label) g.label = g.name
   }
   closeGroupModal()
   recalc()
