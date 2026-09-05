@@ -486,7 +486,7 @@ function paasPct() {
   }
 }
 
-function exportExcel() {
+async function exportExcel() {
   const c = lastCosting
   const nodes = (c && c.perNode) || []
   const t = (c && c.totals) || {}
@@ -571,12 +571,66 @@ function exportExcel() {
       fmtKc(n.cpuCostCZK), fmtKc(n.ramCostCZK), fmtKc(n.diskCostCZK), n.totalFormatted])
   }
 
+  // --- Topologie jako obrázek vložený do binárního .xlsx ---
+  let topoPng = null
+  try {
+    const topoEl = document.querySelector('.topology')
+    if (topoEl && window.html2canvas && window.JSZip) {
+      let canvas = await html2canvas(topoEl, { scale: 2, backgroundColor: '#ffffff' })
+      const maxW = 1400
+      if (canvas.width > maxW) {
+        const sc = maxW / canvas.width
+        const c2 = document.createElement('canvas')
+        c2.width = maxW
+        c2.height = Math.round(canvas.height * sc)
+        c2.getContext('2d').drawImage(canvas, 0, 0, c2.width, c2.height)
+        canvas = c2
+      }
+      topoPng = { b64: canvas.toDataURL('image/png').split(',')[1], w: canvas.width, h: canvas.height }
+    }
+  } catch (e) { topoPng = null }
+
+  // rezervované prázdné řádky nahoře, aby obrázek nepřekrýval text
+  if (topoPng) {
+    const resTop = Math.round(topoPng.h / 18) + 2
+    for (let i = 0; i < resTop; i++) aoa.unshift([null])
+  }
+
   const ws = XLSX.utils.aoa_to_sheet(aoa)
   ws['!cols'] = [{ wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 16 }]
 
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Costing mesic')
-  XLSX.writeFile(wb, (env || 'topologie') + '.xlsx')
+  const raw = XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: true })
+
+  if (topoPng && window.JSZip) {
+    const zip = await JSZip.loadAsync(raw)
+    zip.file('xl/media/image1.png', topoPng.b64, { base64: true })
+    const cx = Math.round(topoPng.w * 9525)
+    const cy = Math.round(topoPng.h * 9525)
+    zip.file('xl/drawings/_rels/drawing1.xml.rels',
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="/xl/media/image1.png" Id="rId1"/></Relationships>')
+    zip.file('xl/drawings/drawing1.xml',
+      `<wsDr xmlns="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"><oneCellAnchor><from><col>0</col><colOff>0</colOff><row>0</row><rowOff>0</rowOff></from><ext cx="${cx}" cy="${cy}"/><pic><nvPicPr><cNvPr id="1" name="Topologie" descr="Topologie"/><cNvPicPr/></nvPicPr><blipFill><a:blip xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" cstate="print" r:embed="rId1"/><a:stretch xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:fillRect/></a:stretch></blipFill><spPr><a:prstGeom xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" prst="rect"/></spPr></pic><clientData/></oneCellAnchor></wsDr>`)
+    let sheet = await zip.file('xl/worksheets/sheet1.xml').async('string')
+    const drawingRef = '<drawing xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1"/>'
+    if (!sheet.includes('<drawing')) sheet = sheet.replace('</worksheet>', drawingRef + '</worksheet>')
+    zip.file('xl/worksheets/sheet1.xml', sheet)
+    zip.file('xl/worksheets/_rels/sheet1.xml.rels',
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="/xl/drawings/drawing1.xml" Id="rId1"/></Relationships>')
+    let ct = await zip.file('[Content_Types].xml').async('string')
+    if (!ct.includes('image/png')) ct = ct.replace('</Types>', '<Default Extension="png" ContentType="image/png"/></Types>')
+    if (!ct.includes('/xl/drawings/drawing1.xml')) ct = ct.replace('</Types>', '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>')
+    zip.file('[Content_Types].xml', ct)
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = (env || 'topologie') + '.xlsx'
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000)
+  } else {
+    XLSX.writeFile(wb, (env || 'topologie') + '.xlsx', { compression: true })
+  }
   showStatus('Excel stažen ✓')
 }
 
