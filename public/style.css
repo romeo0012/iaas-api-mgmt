@@ -62,7 +62,7 @@ body {
 .t-fanout { display: flex; gap: 18px; justify-content: center; align-items: flex-start; width: 100%; flex-wrap: wrap; }
 .t-column { display: flex; flex-direction: column; align-items: center; flex: 1 1 0; min-width: 220px; }
 
-/* connector line between OPNsense (above) and a group (below) */
+/* connector line between elements in the horizontal row */
 .t-conn {
   width: 2px;
   height: 34px;
@@ -70,11 +70,19 @@ body {
   position: relative;
   cursor: pointer;
   transition: background .1s;
+  align-self: center;
 }
 .t-conn:hover { background: #1f6feb; }
-.t-wan { background: #2e7d32; }
+.t-wan { width: 34px; height: 2px; background: #2e7d32; align-self: center; flex-shrink: 0; }
 .t-wan:hover { background: #2e7d32; }
-.t-wan .t-vlan-name { border-color: #2e7d32; color: #2e7d32; }
+.t-wan .t-vlan-name {
+  position: absolute;
+  left: 50%;
+  top: -24px;
+  transform: translateX(-50%);
+  border-color: #2e7d32;
+  color: #2e7d32;
+}
 .t-conn .t-vlan-name {
   position: absolute;
   left: 10px;

@@ -26,11 +26,16 @@ function renderTopology(nodes, vlans) {
   const keys = Object.keys(state.groups || {})
   const groupKeys = keys.filter(k => k === 'opnsense').concat(keys.filter(k => k !== 'opnsense'))
 
-  fanout.innerHTML = groupKeys.map(key => {
-    const showConn = key !== 'opnsense'
-    return `
-    <div class="t-column${key === 'opnsense' ? ' t-sec' : ''}">
-      ${showConn ? `<div class="t-conn" data-vlan="${esc(key)}" title="Klikni pro úpravu VLAN">
+  // INTERNET + WAN connector + groups all in one horizontal row
+  const html = []
+  html.push('<div class="t-node t-internet">INTERNET</div>')
+  html.push(`<div class="t-conn t-wan" data-vlan="opnsense" title="Klikni pro úpravu VLAN"><span class="t-vlan-name" id="wanIp">${esc(state.wanIp ? 'WAN · ' + state.wanIp : 'WAN')}</span></div>`)
+
+  for (const key of groupKeys) {
+    const isSec = key === 'opnsense'
+    html.push(`
+    <div class="t-column${isSec ? ' t-sec' : ''}">
+      ${!isSec ? `<div class="t-conn" data-vlan="${esc(key)}" title="Klikni pro úpravu VLAN">
         <span class="t-vlan-name">${esc((vlans[key] && vlans[key].name) || groupVlanName(key))}</span>
         <span class="t-vlan-uuid">${(vlans[key] && vlans[key].uuid) ? ' · ' + esc(vlans[key].uuid) : ''}</span>
       </div>` : ''}
@@ -43,12 +48,11 @@ function renderTopology(nodes, vlans) {
         </div>
         <div class="t-group-body">${(nodes || []).filter(n => n.group === key).map(n => vmHtml(n)).join('')}</div>
       </div>
-    </div>` }).join('')
+    </div>`)
+  }
 
-  const addCol = document.createElement('div')
-  addCol.className = 't-column t-addcol'
-  addCol.innerHTML = '<button class="btn grp-add" id="addGroupBtn" title="Přidat novou skupinu">+ Skupina</button>'
-  fanout.appendChild(addCol)
+  html.push(`<div class="t-column t-addcol"><button class="btn grp-add" id="addGroupBtn" title="Přidat novou skupinu">+ Skupina</button></div>`)
+  fanout.innerHTML = html.join('')
 
   document.querySelectorAll('.vm-click').forEach(el => {
     el.onclick = () => {
