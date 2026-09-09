@@ -23,14 +23,17 @@ let lastCosting = null
 
 function renderTopology(nodes, vlans) {
   const fanout = document.getElementById('t-fanout')
-  const groupKeys = Object.keys(state.groups || {}).filter(k => k !== 'opnsense')
+  const keys = Object.keys(state.groups || {})
+  const groupKeys = keys.filter(k => k === 'opnsense').concat(keys.filter(k => k !== 'opnsense'))
 
-  fanout.innerHTML = groupKeys.map(key => `
-    <div class="t-column">
-      <div class="t-conn" data-vlan="${esc(key)}" title="Klikni pro úpravu VLAN">
+  fanout.innerHTML = groupKeys.map(key => {
+    const showConn = key !== 'opnsense'
+    return `
+    <div class="t-column${key === 'opnsense' ? ' t-sec' : ''}">
+      ${showConn ? `<div class="t-conn" data-vlan="${esc(key)}" title="Klikni pro úpravu VLAN">
         <span class="t-vlan-name">${esc((vlans[key] && vlans[key].name) || groupVlanName(key))}</span>
         <span class="t-vlan-uuid">${(vlans[key] && vlans[key].uuid) ? ' · ' + esc(vlans[key].uuid) : ''}</span>
-      </div>
+      </div>` : ''}
       <div class="t-group">
         <div class="t-group-name">${esc(groupHead(key))}
           <span class="grp-actions">
@@ -40,26 +43,16 @@ function renderTopology(nodes, vlans) {
         </div>
         <div class="t-group-body">${(nodes || []).filter(n => n.group === key).map(n => vmHtml(n)).join('')}</div>
       </div>
-    </div>`).join('')
+    </div>` }).join('')
 
   const addCol = document.createElement('div')
   addCol.className = 't-column t-addcol'
   addCol.innerHTML = '<button class="btn grp-add" id="addGroupBtn" title="Přidat novou skupinu">+ Skupina</button>'
   fanout.appendChild(addCol)
 
-  const opnsense = (nodes || []).find(n => n.group === 'opnsense')
-  const opnsenseBox = document.querySelector('.vm-firewall')
-  if (opnsenseBox && opnsense) {
-    opnsenseBox.querySelector('.vm-spec').innerHTML =
-      `CPU <b>${esc(fmt(opnsense.cpuGHz))}</b> GHz · RAM <b>${esc(fmt(opnsense.ramGB))}</b> GiB · Disk <b>${esc(fmt(opnsense.diskGB))}</b> GB · ${esc(tierLabel(opnsense.diskTier))}`
-    opnsenseBox.querySelector('.vm-cost').innerHTML = opnsense._cost
-      ? `<div class="vm-cost">${esc(opnsense._cost)}/měs</div>` : ''
-  }
-
   document.querySelectorAll('.vm-click').forEach(el => {
     el.onclick = () => {
-      const idx = el.dataset.idx
-      const node = idx === 'opnsense' ? (nodes || []).find(n => n.group === 'opnsense') : (nodes || []).find(n => n.idx === idx)
+      const node = (nodes || []).find(n => n.idx === el.dataset.idx)
       if (node) openModal(node)
     }
   })
@@ -104,8 +97,9 @@ function removeGroup(key) {
 
 function vmHtml(n) {
   const cost = n._cost ? `<div class="vm-cost">${esc(n._cost)}/měs</div>` : ''
+  const cls = n.group === 'opnsense' ? 'vm vm-click vm-firewall' : 'vm vm-click'
   return `
-    <div class="vm vm-click" data-idx="${esc(n.idx)}" title="Klikni pro úpravu">
+    <div class="${esc(cls)}" data-idx="${esc(n.idx)}" title="Klikni pro úpravu">
       <div class="vm-title">${esc(n.name)}</div>
       <div class="vm-sub">${esc(groupLabel(n.group))}</div>
       <div class="vm-spec">CPU <b>${esc(fmt(n.cpuGHz))}</b> GHz · RAM <b>${esc(fmt(n.ramGB))}</b> GiB · Disk <b>${esc(fmt(n.diskGB))}</b> GB · ${esc(tierLabel(n.diskTier))}</div>
@@ -254,24 +248,23 @@ function openModal(node, isNew) {
     $('mDisk').value = node.diskGB
     $('mTier').value = node.diskTier || defaultTier
     $('modalTitle').textContent = 'Upravit VM — ' + node.name
-    $('mDelete').style.display = node.group === 'opnsense' ? 'none' : ''
+    $('mDelete').style.display = ''
   }
-  const known = { app: 'App', db: 'DB', other: 'VM', opnsense: 'OPNsense' }[node.group]
+  const known = { app: 'App', db: 'DB', other: 'VM', opnsense: 'Bezpečnost' }[node.group]
   fillGroupSelect(known ? node.group : (node.group || ''))
-  // OPNsense je fixní singleton firewall — nelze měnit skupinu.
-  $('mGroup').disabled = node.group === 'opnsense'
+  $('mGroup').disabled = false
   $('vmModal').classList.add('open')
 }
 
 function fillGroupSelect(current) {
   const sel = $('mGroup')
-  const keys = Object.keys(state.groups || {}).filter(k => k !== 'opnsense')
+  const keys = Object.keys(state.groups || {})
   sel.innerHTML = keys.map(k => `<option value="${esc(k)}">${esc(groupLabel(k))}</option>`).join('')
   if (current && keys.includes(current)) sel.value = current
 }
 
 function addVmModal() {
-  const first = Object.keys(state.groups || {}).filter(k => k !== 'opnsense')[0] || 'app'
+  const first = Object.keys(state.groups || {})[0] || 'app'
   openModal({ group: first, name: autoName(first), cpuGHz: 7.2, ramGB: 2.25, diskGB: 50 }, true)
   $('mName').focus()
 }
@@ -282,12 +275,9 @@ function closeModal() {
 }
 
 function readForm() {
-  const editing = (editingId != null && editingId !== NEW_VM)
-    ? state.nodes.find(n => n.idx === editingId) : null
-  const group = (editing && editing.group === 'opnsense') ? 'opnsense' : ($('mGroup').value)
   return {
     name: $('mName').value.trim() || 'VM',
-    group,
+    group: $('mGroup').value,
     cpuGHz: parseFloat($('mCpu').value) || 0,
     ramGB: parseFloat($('mRam').value) || 0,
     diskGB: parseFloat($('mDisk').value) || 0,

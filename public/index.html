@@ -18,16 +18,8 @@
       <h2 class="sr-only">Topologie</h2>
 
       <div class="t-node t-internet">INTERNET</div>
-      <div class="t-conn t-wan" id="wanConn" title="Public IP OPNsense (WAN)">
+      <div class="t-conn t-wan" id="wanConn" data-vlan="opnsense" title="Klikni pro úpravu VLAN">
         <span class="t-vlan-name" id="wanIp">WAN</span>
-      </div>
-
-      <!-- OPNsense firewall -->
-      <div class="vm vm-firewall vm-click" data-idx="opnsense" title="Klikni pro úpravu VM">
-        <div class="vm-title">OPNsense</div>
-        <div class="vm-sub">Firewall</div>
-        <div class="vm-spec">CPU <b>4</b> GHz · RAM <b>4</b> GiB · Disk <b>20</b> GB</div>
-        <div class="vm-cost" id="opnsenseCost"></div>
       </div>
 
       <div class="t-fanout" id="t-fanout"><!-- dynamically rendered groups --></div>
@@ -160,7 +152,7 @@
           <option value="app">Aplikační</option>
           <option value="db">Databázový</option>
           <option value="other">Další VM</option>
-          <option value="opnsense">OPNsense (firewall)</option>
+          <option value="opnsense">Bezpečnost</option>
         </select>
       </label>
       <label>CPU (GHz) <input type="number" id="mCpu" step="0.1" min="0"></label>
