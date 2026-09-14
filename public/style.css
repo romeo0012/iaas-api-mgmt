@@ -348,25 +348,27 @@ body {
   font-size: 13px; background: #fff; cursor: pointer;
 }
 
-.cost-disc { margin-bottom: 10px; }
+.cost-disc { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .cost-disc-title { font-size: 11px; color: #667; text-transform: uppercase; margin-bottom: 4px; }
 .cost-disc-row {
-  display: flex; justify-content: space-between; gap: 12px;
-  font-size: 13px; padding: 3px 0; border-bottom: 1px solid #f0f2f5;
+  display: inline-flex; align-items: baseline; gap: 6px;
+  font-size: 13px; padding: 4px 8px;
+  border: 1px solid #e6e0f5; border-radius: 6px; background: #faf8ff;
 }
-.cost-disc-row .cd-label { font-weight: 600; }
-.cost-disc-row .cd-gb { color: #556; margin-left: auto; }
-.cost-disc-row .cd-cost { font-weight: 700; min-width: 80px; text-align: right; }
+.cost-disc-row .cd-label { font-weight: 600; color: #8a79c9; }
+.cost-disc-row .cd-gb { color: #556; }
+.cost-disc-row .cd-cost { font-weight: 700; min-width: 80px; text-align: right; color: #6b4fc0; }
 
 .cost-group-title { font-size: 11px; color: #667; text-transform: uppercase; margin-bottom: 4px; }
-.cost-group { margin-bottom: 10px; }
+.cost-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .cost-group-row {
-  display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
-  font-size: 13px; padding: 3px 0; border-bottom: 1px solid #f0f2f5;
+  display: inline-flex; align-items: baseline; gap: 6px;
+  font-size: 13px; padding: 4px 8px;
+  border: 1px solid #e6e0f5; border-radius: 6px; background: #faf8ff;
 }
-.cost-group-row .cg-label { font-weight: 700; }
-.cost-group-row .cg-count { color: #667; font-size: 12px; margin-left: auto; }
-.cost-group-row .cg-cost { font-weight: 700; min-width: 80px; text-align: right; }
+.cost-group-row .cg-label { font-weight: 700; color: #8a79c9; }
+.cost-group-row .cg-count { color: #667; font-size: 12px; }
+.cost-group-row .cg-cost { font-weight: 700; min-width: 80px; text-align: right; color: #6b4fc0; }
 
 .cost-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .cost-sep { border-top: 2px dashed #ccd4e0; margin: 14px 0 10px; }
