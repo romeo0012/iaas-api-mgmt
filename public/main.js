@@ -162,6 +162,9 @@ function renderCosting(costing) {
   if (el) el.textContent = fmt(Math.round(baseCloudlets * utilPct))
   $('totCloudRamUtil').textContent = fmt1(baseRam * utilPct) + ' GiB'
   $('totCloudCpuUtil').textContent = fmt1(baseCpu * utilPct) + ' GHz'
+  const perCl = baseCloudlets > 0 ? paasEffRate * utilPct : 0
+  const perClEl = $('totCloudPerClUtil')
+  if (perClEl) perClEl.textContent = fmt1(perCl) + ' Kč'
   $('totCloudCostUtil').textContent = fmt(baseCost * utilPct) + ' Kč'
   const paasCommitSel = $('paasCommitSel')
   if (paasCommitSel) paasCommitSel.value = String(paasCommitment)
