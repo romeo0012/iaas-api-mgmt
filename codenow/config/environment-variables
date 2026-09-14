@@ -8,7 +8,9 @@ PORT=3000
 IaaS_COMMITMENT_MONTHS=12
 
 # PaaS: cena za 1 cloudlet (128 MiB RAM + 400 MHz CPU) / mesiac v Kc (informat.- len Cloudlety)
-IaaS_CLOUDLET_RATE_CZK=138.56
+# Vrstvena cena: prvych 10 cloudletov za IaaS_CLOUDLET_RATE_CZK, od 11. za IaaS_CLOUDLET_RATE_TIER2_CZK
+IaaS_CLOUDLET_RATE_CZK=152.5
+IaaS_CLOUDLET_RATE_TIER2_CZK=133.8
 
 # PaaS Costing / mesiac: vychodzia utilizacia v % (range UI je 10-100)
 IaaS_PAAS_UTILIZATION=40

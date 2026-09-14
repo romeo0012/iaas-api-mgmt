@@ -16,6 +16,26 @@ const pricing = require('./lib/pricing')
 const deployLib = require('./lib/deploy')
 const tcloud = require('./lib/tcloud')
 
+const DEFAULT_TOPO_FILE = path.join(__dirname, 'default.topo.json')
+
+// Startup default topology: loaded from default.topo.json (same format as the
+// UI's .topo.json export) when present, otherwise the built-in default.
+function defaultArch() {
+  try {
+    if (fs.existsSync(DEFAULT_TOPO_FILE)) {
+      const cfg = JSON.parse(fs.readFileSync(DEFAULT_TOPO_FILE, 'utf-8'))
+      if (cfg && Array.isArray(cfg.nodes)) {
+        cfg.groups = cfg.groups || {}
+        cfg.vlans = cfg.vlans || {}
+        return cfg
+      }
+    }
+  } catch (e) {
+    console.warn('default.topo.json: ' + e.message)
+  }
+  return architecture.defaultArchitecture()
+}
+
 app.use(express.json({ limit: '10mb' }))
 
 app.use(BASE_PATH, (req, res, next) => {
@@ -28,9 +48,11 @@ app.use(BASE_PATH, (req, res, next) => {
     const baseTag = BASE_PATH ? `<base href="${BASE_PATH}/">` : ''
     const paasUtilPct = Number(process.env.IaaS_PAAS_UTILIZATION)
     const cloudletRate = parseFloat(process.env.IaaS_CLOUDLET_RATE_CZK)
+    const cloudletRateTier2 = parseFloat(process.env.IaaS_CLOUDLET_RATE_TIER2_CZK)
     const script = `<script>window.BASE_PATH=${JSON.stringify(BASE_PATH)};` +
       `window.PAAS_UTILIZATION=${isFinite(paasUtilPct) && paasUtilPct >= 10 ? Math.min(paasUtilPct, 100) : 40};` +
-      `window.PAAS_CLOUDLET_RATE_CZK=${isFinite(cloudletRate) && cloudletRate > 0 ? cloudletRate : 138.56};</script>`
+      `window.PAAS_CLOUDLET_RATE_CZK=${isFinite(cloudletRate) && cloudletRate > 0 ? cloudletRate : 152.5};` +
+      `window.PAAS_CLOUDLET_RATE_TIER2_CZK=${isFinite(cloudletRateTier2) && cloudletRateTier2 > 0 ? cloudletRateTier2 : 133.8};</script>`
     res.send(html.replace('</head>', baseTag + script + '</head>'))
   })
 })
@@ -46,12 +68,12 @@ function costOf(arch, commitmentMonths) {
 }
 
 app.get(p('/api/architecture'), (_req, res) => {
-  res.json(costOf(architecture.defaultArchitecture()))
+  res.json(costOf(defaultArch()))
 })
 
 app.post(p('/api/cost'), (req, res) => {
   const body = req.body || {}
-  const arch = Array.isArray(body.nodes) ? body : architecture.defaultArchitecture()
+  const arch = Array.isArray(body.nodes) ? body : defaultArch()
   const cm = (body && body.commitmentMonths != null) ? body.commitmentMonths : pricing.defaultCommitment()
   res.json(costOf(arch, cm))
 })
@@ -76,7 +98,7 @@ app.post(p('/api/import-paas'), (req, res) => {
 // architecture ({nodes, groups, ...}) or `{}` for the default topology.
 app.post(p('/api/export-paas'), (req, res) => {
   const body = req.body || {}
-  const arch = Array.isArray(body.nodes) ? body : architecture.defaultArchitecture()
+  const arch = Array.isArray(body.nodes) ? body : defaultArch()
   res.json(architecture.toPaaSExport(arch))
 })
 
@@ -93,7 +115,7 @@ app.get(p('/api/pricing'), (_req, res) => {
 
 app.post(p('/api/deploy'), async (req, res) => {
   const body = req.body || {}
-  const arch = Array.isArray(body.nodes) ? body : architecture.defaultArchitecture()
+  const arch = Array.isArray(body.nodes) ? body : defaultArch()
   const computed = architecture.compute(arch)
   const nodes = computed.nodes.filter(n => n.enabled !== false)
   const creds = body.creds || {}
@@ -108,7 +130,7 @@ app.post(p('/api/deploy'), async (req, res) => {
 
 io.on('connection', (socket) => {
   socket.on('recalc', (arch, callback) => {
-    const full = Array.isArray(arch && arch.nodes) ? arch : architecture.defaultArchitecture()
+    const full = Array.isArray(arch && arch.nodes) ? arch : defaultArch()
     callback(costOf(full, arch && arch.commitmentMonths))
   })
 

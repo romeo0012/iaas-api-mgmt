@@ -117,8 +117,11 @@
           <label>CPU cloudletu
             <input type="number" id="paasCloudCpuMHz" value="400" min="1" step="1"> MHz
           </label>
-          <label>Cena / cloudlet
-            <input type="number" id="paasCloudPriceCzk" value="138.56" min="0" step="0.01"> Kč
+          <label title="Prvních 10 cloudletů za 152.50 Kč">Cena cloudlet (1–10)
+            <input type="number" id="paasCloudPriceCzk" value="152.5" min="0" step="0.01"> Kč
+          </label>
+          <label title="Cloudlety 11 a více za 133.80 Kč">Cena cloudlet (11+)
+            <input type="number" id="paasCloudPriceTier2Czk" value="133.8" min="0" step="0.01"> Kč
           </label>
         </div>
         <div class="cost-paas-level">

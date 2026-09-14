@@ -37,7 +37,8 @@ Kopíruj ze šablony: `cp .env.example .env`
 | `IaaS_CPU_RATE_CZK_GHZ` | cena za CPU GHz/měsíc (defaultní závazek) | `108.73` (12m) |
 | `IaaS_RAM_RATE_CZK_GB` | cena za RAM GB/měsíc (defaultní závazek) | `47.30` (12m) |
 | `IaaS_DISK_RATE_CZK_GB` | cena za disk GB/měsíc, Super Fast tier (defaultní závazek) | `3.15` (12m) |
-| `IaaS_CLOUDLET_RATE_CZK` | PaaS cena za 1 cloudlet/měsíc (jen informativně) | `138.56` |
+| `IaaS_CLOUDLET_RATE_CZK` | PaaS cena za 1 cloudlet/měsíc, pásmo 1–10 (jen informativně) | `152.50` |
+| `IaaS_CLOUDLET_RATE_TIER2_CZK` | PaaS cena za 1 cloudlet/měsíc, pásmo 11+ (jen informativně) | `133.80` |
 | `IaaS_NETWORK_FW_RATE_CZK` | fixní měsíční poplatek „Networking a FW" (všechny závazky) | `108` |
 | `TCLOUD_BASE_URL` | T-Cloud API base | `https://prg1.t-cloud.eu/api/2.0` |
 | `TCLOUD_REFERER` | Referer hlavička | `https://prg1.t-cloud.eu` |
