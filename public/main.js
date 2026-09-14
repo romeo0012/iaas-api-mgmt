@@ -187,7 +187,9 @@ function renderCosting(costing) {
       <td>${fmt(n.cpuCostCZK)} Kč</td>
       <td>${fmt(n.ramCostCZK)} Kč</td>
       <td>${fmt(n.diskCostCZK)} Kč</td>
-      <td>${n.totalFormatted}</td>
+      <td class="iaas-total">${n.totalFormatted}</td>
+      <td>${fmt(Math.round(n.cloudlets * utilPct))}</td>
+      <td>${fmt(Math.round(n.cloudlets * (costing.cloudletRateCZK || 0) * utilPct))} Kč</td>
     </tr>`).join('')
 }
 
@@ -544,11 +546,12 @@ async function exportExcel() {
   aoa.push([rateNote])
   aoa.push([])
 
-  const header = ['VM', 'Skupina', 'CPU GHz', 'RAM GiB', 'Disk GB', 'Tier', 'CPU', 'RAM', 'Disk', 'Celkem']
+  const header = ['VM', 'Skupina', 'CPU GHz', 'RAM GiB', 'Disk GB', 'Tier', 'CPU', 'RAM', 'Disk', 'Cena IaaS', 'Cloudlety', 'Cena PaaS']
   aoa.push(header)
   for (const n of nodes) {
     aoa.push([n.name, groupLabel(n.group), n.cpuGHz, n.ramGB, n.diskGB, n.diskTierLabel,
-      fmtKc(n.cpuCostCZK), fmtKc(n.ramCostCZK), fmtKc(n.diskCostCZK), n.totalFormatted])
+      fmtKc(n.cpuCostCZK), fmtKc(n.ramCostCZK), fmtKc(n.diskCostCZK), n.totalFormatted,
+      fmt(Math.round(n.cloudlets * utilization)), fmtKc(n.cloudlets * (c.cloudletRateCZK || 0) * utilization)])
   }
 
   // --- Topologie jako obrázek vložený do binárního .xlsx ---

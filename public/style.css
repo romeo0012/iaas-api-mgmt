@@ -348,3 +348,4 @@ body {
 .cost-table th, .cost-table td { border: 1px solid #eef0f3; padding: 6px 8px; text-align: left; }
 .cost-table th { background: #f6f8fa; }
 .cost-table td:last-child { font-weight: 700; }
+.cost-table td.iaas-total { font-weight: 700; }
