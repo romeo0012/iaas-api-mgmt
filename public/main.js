@@ -508,6 +508,87 @@ function paasPct() {
   }
 }
 
+// ---- Excel styling (opravdová grafika .xlsx přes JSZip) ----
+//
+// SheetJS community build neumí zapsat styly, tak se soubor po zápisu
+// dozpracovává přes JSZip: přepíše se xl/styles.xml (fonty/filly/borders/cellXfs
+// kopírující barevné schéma webu) a do xl/worksheets/sheet1.xml se doplní
+// atribut `s` na buňky podle mřížky `rowTags` (jedna položka tagu na buňku).
+// Tagy: default|title|subtitle|note|secIaaS|secPaaS|lbl|val|total|thead|tcell|tcellBold
+
+const XLSX_TAG_IX = { default: 0, title: 1, subtitle: 2, note: 3, secIaaS: 4, secPaaS: 5, lbl: 6, val: 7, total: 8, thead: 9, tcell: 10, tcellBold: 11 }
+
+function buildExcelStylesXml() {
+  const font = (bold, sz, color, italic) =>
+    '<font>' + (bold ? '<b/>' : '') + (italic ? '<i/>' : '') +
+    `<sz val="${sz}"/><color rgb="FF${color}"/><name val="Calibri"/></font>`
+  const fonts = [
+    font(false, 11, '000000'),            // 0 default
+    font(true, 11, '000000'),             // 1 bold
+    font(true, 14, '1F3B57'),             // 2 title
+    font(false, 10, '666666', true),      // 3 note (grey italic)
+    font(true, 14, '1F6FEB'),             // 4 sec IaaS (blue)
+    font(true, 14, '7A5BD6'),             // 5 sec PaaS (purple)
+    font(false, 10, '8A79C9'),            // 6 item label (purple-grey)
+    font(true, 11, '6B4FC0'),             // 7 item value / PaaS (purple)
+    font(false, 10, '556677'),            // 8 subtitle
+  ]
+  const fills = [
+    '<fill><patternFill patternType="none"/></fill>',
+    '<fill><patternFill patternType="gray125"/></fill>',
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFF6F8FA"/><bgColor indexed="64"/></patternFill></fill>',   // 2 table header
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFF0F6FF"/><bgColor indexed="64"/></patternFill></fill>',   // 3 blue tint (totals)
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFFAF8FF"/><bgColor indexed="64"/></patternFill></fill>',   // 4 purple tint (items)
+  ]
+  const thin = '<border><left style="thin"><color rgb="FFEEF0F3"/></left><right style="thin"><color rgb="FFEEF0F3"/></right><top style="thin"><color rgb="FFEEF0F3"/></top><bottom style="thin"><color rgb="FFEEF0F3"/></bottom><diagonal/></border>'
+  const borders = ['<border><left/><right/><top/><bottom/><diagonal/></border>', thin]
+  const xf = (fontId, fillId, borderId, applyFont, applyFill, applyBorder) =>
+    `<xf numFmtId="0" fontId="${fontId}" fillId="${fillId}" borderId="${borderId}" xfId="0" applyFont="${applyFont ? 1 : 0}" applyFill="${applyFill ? 1 : 0}" applyBorder="${applyBorder ? 1 : 0}"/>`
+  const cellXfs = [
+    xf(0, 0, 0),            // 0 default
+    xf(2, 0, 0, 1),         // 1 title
+    xf(8, 0, 0, 1),         // 2 subtitle
+    xf(3, 0, 0, 1),         // 3 note
+    xf(4, 0, 0, 1),         // 4 sec IaaS
+    xf(5, 0, 0, 1),         // 5 sec PaaS
+    xf(6, 0, 0, 1),         // 6 item label
+    xf(7, 0, 0, 1),         // 7 item value
+    xf(1, 3, 1, 1, 1, 1),   // 8 total (blue tint, bold)
+    xf(1, 2, 1, 1, 1, 1),   // 9 table header (grey fill, bold, borders)
+    xf(0, 0, 1, 0, 0, 1),   // 10 table cell (borders)
+    xf(1, 0, 1, 1, 0, 1),   // 11 table cell bold (IaaS total / PaaS price)
+  ]
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="${fonts.length}">${fonts.join('')}</fonts>
+<fills count="${fills.length}">${fills.join('')}</fills>
+<borders count="${borders.length}">${borders.join('')}</borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="${cellXfs.length}">${cellXfs.join('')}</cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`
+}
+
+function colToIdx(letters) {
+  let idx = 0
+  for (let i = 0; i < letters.length; i++) idx = idx * 26 + (letters.charCodeAt(i) - 64)
+  return idx - 1
+}
+
+function applyXlsxStyles(sheetXml, rowTags) {
+  return sheetXml.replace(/<row r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g, (mrow, r, inner) => {
+    const ri = +r - 1
+    const tags = rowTags[ri]
+    const styled = inner.replace(/<c r="([A-Z]+)(\d+)"([^>]*)>/g, (m, col, rr, attrs) => {
+      const tag = (tags && tags[colToIdx(col)]) || 'default'
+      const si = XLSX_TAG_IX[tag]
+      if (si == null || si === 0) return m
+      return `<c r="${col}${rr}" s="${si}"${attrs}>`
+    })
+    return mrow.replace(inner, styled)
+  })
+}
+
 async function exportExcel() {
   const c = lastCosting
   const nodes = (c && c.perNode) || []
@@ -517,34 +598,38 @@ async function exportExcel() {
   const { utilization } = paasPct()
 
   const fmtKc = n => fmt(n == null ? 0 : n) + ' Kč'
-  const paasLevelRows = (pct) => {
-    const totalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
-    return [
-      ['Cloudlety', fmt(Math.round(totalCl * pct))],
-      ['RAM', fmt1((t.ramGB || 0) * pct) + ' GiB'],
-      ['CPU', fmt1((t.cpuGHz || 0) * pct) + ' GHz'],
-      ['Cena (PaaS)', fmtKc(paasCloudletsCost(totalCl, paasCommitment) * pct)],
-    ]
+  const aoa = []
+  const rowTags = []
+  const pushRow = (cells, spec) => {
+    aoa.push(cells)
+    const tags = new Array(cells.length)
+    if (Array.isArray(spec)) {
+      for (let i = 0; i < cells.length; i++) tags[i] = spec[i] || 'default'
+    } else if (typeof spec === 'string') {
+      for (let i = 0; i < cells.length; i++) tags[i] = spec
+    } else {
+      for (let i = 0; i < cells.length; i++) tags[i] = (spec && spec.base) || 'default'
+      if (spec && spec.cells) for (const [i, tag] of Object.entries(spec.cells)) tags[+i] = tag
+    }
+    rowTags.push(tags)
   }
 
-  const aoa = []
+  pushRow([env ? ('Topologie: ' + env) : 'IaaS Architektura'], 'title')
+  if (commit) pushRow(['Závazek: ' + commit], 'subtitle')
+  pushRow([], 'blank')
 
-  aoa.push([env ? ('Topologie: ' + env) : 'IaaS Architektura'])
-  if (commit) aoa.push(['Závazek: ' + commit])
-  aoa.push([])
-
-  aoa.push(['IaaS Costing / měsíc'])
-  aoa.push(['CPU', fmt(t.cpuGHz || 0) + ' GHz'])
-  aoa.push(['RAM', fmt(t.ramGB || 0) + ' GiB'])
-  aoa.push(['Disk', fmt(t.diskGB || 0) + ' GB'])
-  aoa.push(['Cena (IaaS)', t.totalFormatted || '0 Kč'])
-  aoa.push([])
+  pushRow(['IaaS Costing / měsíc'], 'secIaaS')
+  pushRow(['CPU', fmt(t.cpuGHz || 0) + ' GHz'], ['lbl', 'val'])
+  pushRow(['RAM', fmt(t.ramGB || 0) + ' GiB'], ['lbl', 'val'])
+  pushRow(['Disk', fmt(t.diskGB || 0) + ' GB'], ['lbl', 'val'])
+  pushRow(['Cena (IaaS)', t.totalFormatted || '0 Kč'], ['lbl', 'total'])
+  pushRow([], 'blank')
 
   const disc = c && c.diskByTier
   if (disc && disc.length) {
-    aoa.push(['Disk podle tieru'])
-    for (const x of disc) aoa.push([x.label, `${fmt(x.diskGB)} GB × ${fmt(x.rate)} Kč`, fmtKc(x.diskCostCZK)])
-    aoa.push([])
+    pushRow(['Disk podle tieru'], 'note')
+    for (const x of disc) pushRow([x.label, `${fmt(x.diskGB)} GB × ${fmt(x.rate)} Kč`, fmtKc(x.diskCostCZK)], ['lbl', 'note', 'val'])
+    pushRow([], 'blank')
   }
 
   const groupMap = {}
@@ -556,12 +641,12 @@ async function exportExcel() {
   const order = Object.keys(state.groups || {}).filter(k => groupMap[k]).concat(
     Object.keys(groupMap).filter(k => !(state.groups || {})[k]))
   if (order.length) {
-    aoa.push(['Cena podle skupiny'])
+    pushRow(['Cena podle skupiny'], 'note')
     for (const g of order) {
       const d = groupMap[g]
-      aoa.push([groupHead(g) || g, d.count + ' VM', fmtKc(d.total)])
+      pushRow([groupHead(g) || g, d.count + ' VM', fmtKc(d.total)], ['lbl', 'note', 'val'])
     }
-    aoa.push([])
+    pushRow([], 'blank')
   }
 
   const tiers = (c && c.diskTiers) || {}
@@ -569,24 +654,29 @@ async function exportExcel() {
     .map(tk => `${tk.label} ${fmt((tk.rates && tk.rates[c.commitmentMonths]) || 0)}`)
     .join(' · ')
   const rateNote = `CPU: ${fmt(c.rateCpuGHz)} Kč/GHz · RAM: ${fmt(c.rateRamGB)} Kč/GB · Disk (Kč/GB): ${tierLine} · závazek: ${commit || (c.commitmentMonths + ' měs.')}`
-  aoa.push([rateNote])
-  aoa.push([])
+  pushRow([rateNote], 'note')
+  pushRow([], 'blank')
 
-  aoa.push(['PaaS Costing / měsíc'])
-  aoa.push([`Závazek (PaaS): ${commitLabel(paasCommitment)} · Cloudlet: ${paasCloudRamMiB} MiB RAM + ${paasCloudCpuMHz} MHz CPU · Cena: ${fmt1(paasCloudPriceCzk * paasCommitRatio(paasCommitment))} Kč (1–${PAAS_TIER1_CLOUDLETS} cl) / ${fmt1(paasCloudPriceTier2Czk * paasCommitRatio(paasCommitment))} Kč (${PAAS_TIER1_CLOUDLETS}+ cl)`])
-  aoa.push([`Utilizace ${Math.round(utilization * 100)} %`])
-  paasLevelRows(utilization).forEach(r => aoa.push(r))
-  aoa.push([])
+  pushRow(['PaaS Costing / měsíc'], 'secPaaS')
+  pushRow([`Závazek (PaaS): ${commitLabel(paasCommitment)} · Cloudlet: ${paasCloudRamMiB} MiB RAM + ${paasCloudCpuMHz} MHz CPU · Cena: ${fmt1(paasCloudPriceCzk * paasCommitRatio(paasCommitment))} Kč (1–${PAAS_TIER1_CLOUDLETS} cl) / ${fmt1(paasCloudPriceTier2Czk * paasCommitRatio(paasCommitment))} Kč (${PAAS_TIER1_CLOUDLETS}+ cl)`], 'note')
+  pushRow([`Utilizace ${Math.round(utilization * 100)} %`], 'note')
+  const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
+  pushRow(['Cloudlety', fmt(Math.round(paasTotalCl * utilization))], ['lbl', 'val'])
+  pushRow(['RAM', fmt1((t.ramGB || 0) * utilization) + ' GiB'], ['lbl', 'val'])
+  pushRow(['CPU', fmt1((t.cpuGHz || 0) * utilization) + ' GHz'], ['lbl', 'val'])
+  pushRow(['Cena (PaaS)', fmtKc(paasCloudletsCost(paasTotalCl, paasCommitment) * utilization)], ['lbl', 'total'])
+  pushRow([], 'blank')
 
   const header = ['VM', 'Skupina', 'CPU GHz', 'RAM GiB', 'Disk GB', 'Tier', 'CPU', 'RAM', 'Disk', 'Cena IaaS', 'Cloudlety', 'Cena PaaS']
-  aoa.push(header)
+  pushRow(header, 'thead')
   const expTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
   const expEffRate = expTotalCl > 0 ? paasCloudletsCost(expTotalCl, paasCommitment) / expTotalCl : 0
   for (const n of nodes) {
     const cl = paasCloudletsOf(n.cpuGHz, n.ramGB)
-    aoa.push([n.name, groupLabel(n.group), n.cpuGHz, n.ramGB, n.diskGB, n.diskTierLabel,
+    pushRow([n.name, groupLabel(n.group), n.cpuGHz, n.ramGB, n.diskGB, n.diskTierLabel,
       fmtKc(n.cpuCostCZK), fmtKc(n.ramCostCZK), fmtKc(n.diskCostCZK), n.totalFormatted,
-      fmt(Math.round(cl * utilization)), fmtKc(cl * expEffRate * utilization)])
+      fmt(Math.round(cl * utilization)), fmtKc(cl * expEffRate * utilization)],
+      { base: 'tcell', cells: { 9: 'tcellBold', 11: 'tcellBold' } })
   }
 
   // --- Topologie jako obrázek vložený do binárního .xlsx ---
@@ -612,34 +702,44 @@ async function exportExcel() {
   if (topoPng) {
     const resTop = Math.round(topoPng.h / 18) + 2
     for (let i = 0; i < resTop; i++) aoa.unshift([null])
+    for (let i = 0; i < resTop; i++) rowTags.unshift([])
   }
 
   const ws = XLSX.utils.aoa_to_sheet(aoa)
-  ws['!cols'] = [{ wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 16 }]
+  ws['!cols'] = [
+    { wch: 24 }, { wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 11 },
+    { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 13 }, { wch: 10 }, { wch: 12 },
+  ]
 
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Costing mesic')
   const raw = XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: true })
 
-  if (topoPng && window.JSZip) {
+  if (window.JSZip) {
     const zip = await JSZip.loadAsync(raw)
-    zip.file('xl/media/image1.png', topoPng.b64, { base64: true })
-    const cx = Math.round(topoPng.w * 9525)
-    const cy = Math.round(topoPng.h * 9525)
-    zip.file('xl/drawings/_rels/drawing1.xml.rels',
-      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="/xl/media/image1.png" Id="rId1"/></Relationships>')
-    zip.file('xl/drawings/drawing1.xml',
-      `<wsDr xmlns="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"><oneCellAnchor><from><col>0</col><colOff>0</colOff><row>0</row><rowOff>0</rowOff></from><ext cx="${cx}" cy="${cy}"/><pic><nvPicPr><cNvPr id="1" name="Topologie" descr="Topologie"/><cNvPicPr/></nvPicPr><blipFill><a:blip xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" cstate="print" r:embed="rId1"/><a:stretch xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:fillRect/></a:stretch></blipFill><spPr><a:prstGeom xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" prst="rect"/></spPr></pic><clientData/></oneCellAnchor></wsDr>`)
+    zip.file('xl/styles.xml', buildExcelStylesXml())
     let sheet = await zip.file('xl/worksheets/sheet1.xml').async('string')
-    const drawingRef = '<drawing xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1"/>'
-    if (!sheet.includes('<drawing')) sheet = sheet.replace('</worksheet>', drawingRef + '</worksheet>')
+    sheet = applyXlsxStyles(sheet, rowTags)
+
+    if (topoPng) {
+      zip.file('xl/media/image1.png', topoPng.b64, { base64: true })
+      const cx = Math.round(topoPng.w * 9525)
+      const cy = Math.round(topoPng.h * 9525)
+      zip.file('xl/drawings/_rels/drawing1.xml.rels',
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="/xl/media/image1.png" Id="rId1"/></Relationships>')
+      zip.file('xl/drawings/drawing1.xml',
+        `<wsDr xmlns="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"><oneCellAnchor><from><col>0</col><colOff>0</colOff><row>0</row><rowOff>0</rowOff></from><ext cx="${cx}" cy="${cy}"/><pic><nvPicPr><cNvPr id="1" name="Topologie" descr="Topologie"/><cNvPicPr/></nvPicPr><blipFill><a:blip xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" cstate="print" r:embed="rId1"/><a:stretch xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:fillRect/></a:stretch></blipFill><spPr><a:prstGeom xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" prst="rect"/></spPr></pic><clientData/></oneCellAnchor></wsDr>`)
+      const drawingRef = '<drawing xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId1"/>'
+      if (!sheet.includes('<drawing')) sheet = sheet.replace('</worksheet>', drawingRef + '</worksheet>')
+      zip.file('xl/worksheets/_rels/sheet1.xml.rels',
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="/xl/drawings/drawing1.xml" Id="rId1"/></Relationships>')
+      let ct = await zip.file('[Content_Types].xml').async('string')
+      if (!ct.includes('image/png')) ct = ct.replace('</Types>', '<Default Extension="png" ContentType="image/png"/></Types>')
+      if (!ct.includes('/xl/drawings/drawing1.xml')) ct = ct.replace('</Types>', '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>')
+      zip.file('[Content_Types].xml', ct)
+    }
+
     zip.file('xl/worksheets/sheet1.xml', sheet)
-    zip.file('xl/worksheets/_rels/sheet1.xml.rels',
-      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="/xl/drawings/drawing1.xml" Id="rId1"/></Relationships>')
-    let ct = await zip.file('[Content_Types].xml').async('string')
-    if (!ct.includes('image/png')) ct = ct.replace('</Types>', '<Default Extension="png" ContentType="image/png"/></Types>')
-    if (!ct.includes('/xl/drawings/drawing1.xml')) ct = ct.replace('</Types>', '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>')
-    zip.file('[Content_Types].xml', ct)
     const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
