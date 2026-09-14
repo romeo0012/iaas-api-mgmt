@@ -296,6 +296,10 @@ body {
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
 }
+.cost-util { display: flex; align-items: center; gap: 10px; margin: 2px 0 8px; }
+.cost-util label { font-size: 12px; color: #8a79c9; text-transform: uppercase; font-weight: 700; letter-spacing: .3px; }
+.cost-util input[type="range"] { flex: 1 1 auto; min-width: 120px; accent-color: #7a5bd6; }
+.cost-util span { font-size: 13px; font-weight: 700; color: #6b4fc0; min-width: 44px; text-align: right; }
 .cost-paas-lvl-title {
   grid-column: 1 / -1;
   font-size: 12px;

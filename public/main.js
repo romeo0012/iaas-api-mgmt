@@ -15,6 +15,8 @@ const TIER_LABELS = { superfast: 'Super Fast', fast: 'Fast', standard: 'Standard
 function tierLabel(t) { return TIER_LABELS[t] || 'Super Fast' }
 
 let state = { nodes: [], vlans: {}, groups: {}, wanIp: '', commitment: 12, envName: '' }
+let paasUtil = (typeof window.PAAS_UTILIZATION === 'number' && window.PAAS_UTILIZATION >= 10)
+  ? Math.min(window.PAAS_UTILIZATION, 100) : 40
 let editingId = null
 let editingVlan = null
 let lastCosting = null
@@ -120,31 +122,20 @@ function renderCosting(costing) {
   $('totCpu').textContent = fmt(t.cpuGHz) + ' GHz'
   $('totRam').textContent = fmt(t.ramGB) + ' GiB'
   $('totDisk').textContent = fmt(t.diskGB) + ' GB'
-  $('totCloudlets').textContent = t.cloudlets != null ? fmt(t.cloudlets) : '0'
-  $('totCloudRam').textContent = fmt1(costing.cloudletRamGiB != null ? costing.cloudletRamGiB : 0) + ' GiB'
-  $('totCloudCpu').textContent = fmt1(costing.cloudletCpuGHz != null ? costing.cloudletCpuGHz : 0) + ' GHz'
-  $('totCloudCost').textContent = fmt(costing.cloudletCostCZK != null ? costing.cloudletCostCZK : 0) + ' Kč'
-
   const baseCloudlets = t.cloudlets != null ? t.cloudlets : 0
   const baseRam = costing.cloudletRamGiB != null ? costing.cloudletRamGiB : 0
   const baseCpu = costing.cloudletCpuGHz != null ? costing.cloudletCpuGHz : 0
   const baseCost = costing.cloudletCostCZK != null ? costing.cloudletCostCZK : 0
-  const optimalPct = (typeof window.PAAS_OPTIMAL_PCT === 'number' ? window.PAAS_OPTIMAL_PCT : 60) / 100
-  const reservePct = (typeof window.PAAS_RESERVE_PCT === 'number' ? window.PAAS_RESERVE_PCT : 20) / 100
-  const optTitle = $('paasOptTitle')
-  if (optTitle) optTitle.textContent = `Optimální (${Math.round(optimalPct * 100)} % limitů)`
-  const resTitle = $('paasResTitle')
-  if (resTitle) resTitle.textContent = `Rezervace (${Math.round(reservePct * 100)} % ceny limitů)`
-  const paasLevel = (lvl, pct) => {
-    const cl = Math.round(baseCloudlets * pct)
-    const el = $('totCloudlets' + lvl)
-    if (el) el.textContent = fmt(cl)
-    $('totCloudRam' + lvl).textContent = fmt1(baseRam * pct) + ' GiB'
-    $('totCloudCpu' + lvl).textContent = fmt1(baseCpu * pct) + ' GHz'
-    $('totCloudCost' + lvl).textContent = fmt(baseCost * pct) + ' Kč'
-  }
-  paasLevel('Opt', optimalPct)
-  paasLevel('Res', reservePct)
+  const utilPct = paasUtil / 100
+  const el = $('totCloudletsUtil')
+  if (el) el.textContent = fmt(Math.round(baseCloudlets * utilPct))
+  $('totCloudRamUtil').textContent = fmt1(baseRam * utilPct) + ' GiB'
+  $('totCloudCpuUtil').textContent = fmt1(baseCpu * utilPct) + ' GHz'
+  $('totCloudCostUtil').textContent = fmt(baseCost * utilPct) + ' Kč'
+  const utilVal = $('paasUtilVal')
+  if (utilVal) utilVal.textContent = paasUtil + ' %'
+  const utilRange = $('paasUtilRange')
+  if (utilRange) utilRange.value = String(paasUtil)
 
   $('totCpuCost').textContent = fmt(t.cpuCostCZK) + ' Kč'
   $('totRamCost').textContent = fmt(t.ramCostCZK) + ' Kč'
@@ -475,8 +466,7 @@ $('ulTopoFile').onchange = e => {
 // Procento alimentované pro „Optimální“ / „Rezervace“ (stejně jako renderCosting).
 function paasPct() {
   return {
-    optimal: (typeof window.PAAS_OPTIMAL_PCT === 'number' ? window.PAAS_OPTIMAL_PCT : 60) / 100,
-    reserve: (typeof window.PAAS_RESERVE_PCT === 'number' ? window.PAAS_RESERVE_PCT : 20) / 100,
+    utilization: paasUtil / 100,
   }
 }
 
@@ -486,7 +476,7 @@ async function exportExcel() {
   const t = (c && c.totals) || {}
   const env = (state.nodes[0] && state.nodes[0]._envName) || state.envName || 'topologie'
   const commit = (c && (c.commitmentLabel || (c.commitmentMonths + ' měs.'))) || ''
-  const { optimal, reserve } = paasPct()
+  const { utilization } = paasPct()
 
   const fmtKc = n => fmt(n == null ? 0 : n) + ' Kč'
   const paasLevelRows = (pct) => {
@@ -518,12 +508,8 @@ async function exportExcel() {
   aoa.push([])
 
   aoa.push(['PaaS Costing / měsíc'])
-  aoa.push(['Limity'])
-  paasLevelRows(1).forEach(r => aoa.push(r))
-  aoa.push([`Optimální (${Math.round(optimal * 100)} % limitů)`])
-  paasLevelRows(optimal).forEach(r => aoa.push(r))
-  aoa.push([`Rezervace (${Math.round(reserve * 100)} % ceny limitů)`])
-  paasLevelRows(reserve).forEach(r => aoa.push(r))
+  aoa.push([`Utilizace ${Math.round(utilization * 100)} %`])
+  paasLevelRows(utilization).forEach(r => aoa.push(r))
   aoa.push([])
 
   const disc = c && c.diskByTier
@@ -904,6 +890,15 @@ if (commitSel) commitSel.onchange = () => {
   state.commitment = parseInt(commitSel.value, 10)
   if (!Number.isFinite(state.commitment)) state.commitment = 12
   recalc()
+}
+
+const paasRange = $('paasUtilRange')
+if (paasRange) {
+  paasRange.oninput = () => {
+    paasUtil = parseInt(paasRange.value, 10) || 40
+    $('paasUtilVal').textContent = paasUtil + ' %'
+    if (lastCosting) renderCosting(lastCosting)
+  }
 }
 
 fetch(BP + '/api/pricing').then(r => r.json()).then(data => {
