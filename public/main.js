@@ -17,6 +17,10 @@ function tierLabel(t) { return TIER_LABELS[t] || 'Super Fast' }
 let state = { nodes: [], vlans: {}, groups: {}, wanIp: '', commitment: 12, envName: '' }
 let paasUtil = (typeof window.PAAS_UTILIZATION === 'number' && window.PAAS_UTILIZATION >= 10)
   ? Math.min(window.PAAS_UTILIZATION, 100) : 40
+let paasCloudRamMiB = 128
+let paasCloudCpuMHz = 400
+let paasCloudPriceCzk = (typeof window.PAAS_CLOUDLET_RATE_CZK === 'number' && window.PAAS_CLOUDLET_RATE_CZK > 0)
+  ? window.PAAS_CLOUDLET_RATE_CZK : 138.56
 let editingId = null
 let editingVlan = null
 let lastCosting = null
@@ -111,34 +115,40 @@ function vmHtml(n) {
     </div>`
 }
 
+function paasCloudletsOf(cpuGHz, ramGB) {
+  const clCpu = paasCloudCpuMHz / 1000
+  const clRam = paasCloudRamMiB / 1024
+  return Math.ceil(Math.max(cpuGHz / clCpu, ramGB / clRam))
+}
+
 function renderCosting(costing) {
   lastCosting = costing
   const t = costing.totals
   const commitSel = $('commitSel')
   if (commitSel) { state.commitment = costing.commitmentMonths; commitSel.value = String(costing.commitmentMonths) }
-  $('vmCount').textContent = costing.perNode.length
   $('totCpu').textContent = fmt(t.cpuGHz) + ' GHz'
   $('totRam').textContent = fmt(t.ramGB) + ' GiB'
   $('totDisk').textContent = fmt(t.diskGB) + ' GB'
-  const baseCloudlets = t.cloudlets != null ? t.cloudlets : 0
-  const baseRam = costing.cloudletRamGiB != null ? costing.cloudletRamGiB : 0
-  const baseCpu = costing.cloudletCpuGHz != null ? costing.cloudletCpuGHz : 0
-  const baseCost = costing.cloudletCostCZK != null ? costing.cloudletCostCZK : 0
+  const baseCloudlets = costing.perNode.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
+  const baseRam = baseCloudlets * (paasCloudRamMiB / 1024)
+  const baseCpu = baseCloudlets * (paasCloudCpuMHz / 1000)
+  const baseCost = baseCloudlets * paasCloudPriceCzk
   const utilPct = paasUtil / 100
   const el = $('totCloudletsUtil')
   if (el) el.textContent = fmt(Math.round(baseCloudlets * utilPct))
   $('totCloudRamUtil').textContent = fmt1(baseRam * utilPct) + ' GiB'
   $('totCloudCpuUtil').textContent = fmt1(baseCpu * utilPct) + ' GHz'
   $('totCloudCostUtil').textContent = fmt(baseCost * utilPct) + ' Kč'
+  const paasCommitSel = $('paasCommitSel')
+  if (paasCommitSel) paasCommitSel.value = String(costing.commitmentMonths)
+  const paasMRam = $('paasCloudRamMiB'); if (paasMRam) paasMRam.value = String(paasCloudRamMiB)
+  const paasMCpu = $('paasCloudCpuMHz'); if (paasMCpu) paasMCpu.value = String(paasCloudCpuMHz)
+  const paasMCost = $('paasCloudPriceCzk'); if (paasMCost) paasMCost.value = String(paasCloudPriceCzk)
   const utilVal = $('paasUtilVal')
   if (utilVal) utilVal.textContent = paasUtil + ' %'
   const utilRange = $('paasUtilRange')
   if (utilRange) utilRange.value = String(paasUtil)
 
-  $('totCpuCost').textContent = fmt(t.cpuCostCZK) + ' Kč'
-  $('totRamCost').textContent = fmt(t.ramCostCZK) + ' Kč'
-  $('totDiskCost').textContent = fmt(t.diskCostCZK) + ' Kč'
-  $('totNetFw').textContent = fmt(t.networkingFwCZK != null ? t.networkingFwCZK : (costing.networkingFwCZK || 0)) + ' Kč'
   $('totPrice').textContent = t.totalFormatted
 
   const disc = costing.diskByTier || []
@@ -174,7 +184,9 @@ function renderCosting(costing) {
     </div>`
   }).join('')
 
-  $('costTableBody').innerHTML = costing.perNode.map(n => `
+  $('costTableBody').innerHTML = costing.perNode.map(n => {
+    const cl = paasCloudletsOf(n.cpuGHz, n.ramGB)
+    return `
     <tr>
       <td>${esc(n.name)}</td>
       <td>${esc(groupLabel(n.group))}</td>
@@ -186,9 +198,10 @@ function renderCosting(costing) {
       <td>${fmt(n.ramCostCZK)} Kč</td>
       <td>${fmt(n.diskCostCZK)} Kč</td>
       <td class="iaas-total">${n.totalFormatted}</td>
-      <td>${fmt(Math.round(n.cloudlets * utilPct))}</td>
-      <td>${fmt(Math.round(n.cloudlets * (costing.cloudletRateCZK || 0) * utilPct))} Kč</td>
-    </tr>`).join('')
+      <td>${fmt(Math.round(cl * utilPct))}</td>
+      <td>${fmt(Math.round(cl * paasCloudPriceCzk * utilPct))} Kč</td>
+    </tr>`
+  }).join('')
 }
 
 function recalc() {
@@ -480,12 +493,12 @@ async function exportExcel() {
 
   const fmtKc = n => fmt(n == null ? 0 : n) + ' Kč'
   const paasLevelRows = (pct) => {
-    const cl = Math.round((t.cloudlets || 0) * pct)
+    const totalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
     return [
-      ['Cloudlety', fmt(cl)],
-      ['RAM', fmt1((c.cloudletRamGiB || 0) * pct) + ' GiB'],
-      ['CPU', fmt1((c.cloudletCpuGHz || 0) * pct) + ' GHz'],
-      ['Cena (PaaS)', fmtKc((c.cloudletCostCZK || 0) * pct)],
+      ['Cloudlety', fmt(Math.round(totalCl * pct))],
+      ['RAM', fmt1(totalCl * (paasCloudRamMiB / 1024) * pct) + ' GiB'],
+      ['CPU', fmt1(totalCl * (paasCloudCpuMHz / 1000) * pct) + ' GHz'],
+      ['Cena (PaaS)', fmtKc(totalCl * paasCloudPriceCzk * pct)],
     ]
   }
 
@@ -496,20 +509,10 @@ async function exportExcel() {
   aoa.push([])
 
   aoa.push(['IaaS Costing / měsíc'])
-  aoa.push(['Virtuální stroje', nodes.length])
-  aoa.push(['CPU celkem', fmt(t.cpuGHz || 0) + ' GHz'])
-  aoa.push(['RAM celkem', fmt(t.ramGB || 0) + ' GiB'])
-  aoa.push(['Disk celkem', fmt(t.diskGB || 0) + ' GB'])
-  aoa.push(['CPU', fmtKc(t.cpuCostCZK)])
-  aoa.push(['RAM', fmtKc(t.ramCostCZK)])
-  aoa.push(['Disk', fmtKc(t.diskCostCZK)])
-  aoa.push(['Networking a FW', fmtKc(t.networkingFwCZK != null ? t.networkingFwCZK : 0)])
-  aoa.push(['Celkem (IaaS)', t.totalFormatted || '0 Kč'])
-  aoa.push([])
-
-  aoa.push(['PaaS Costing / měsíc'])
-  aoa.push([`Utilizace ${Math.round(utilization * 100)} %`])
-  paasLevelRows(utilization).forEach(r => aoa.push(r))
+  aoa.push(['CPU', fmt(t.cpuGHz || 0) + ' GHz'])
+  aoa.push(['RAM', fmt(t.ramGB || 0) + ' GiB'])
+  aoa.push(['Disk', fmt(t.diskGB || 0) + ' GB'])
+  aoa.push(['Cena (IaaS)', t.totalFormatted || '0 Kč'])
   aoa.push([])
 
   const disc = c && c.diskByTier
@@ -544,12 +547,19 @@ async function exportExcel() {
   aoa.push([rateNote])
   aoa.push([])
 
+  aoa.push(['PaaS Costing / měsíc'])
+  aoa.push([`Závazek: ${commit} · Cloudlet: ${paasCloudRamMiB} MiB RAM + ${paasCloudCpuMHz} MHz CPU · Cena ${fmt1(paasCloudPriceCzk)} Kč/měs`])
+  aoa.push([`Utilizace ${Math.round(utilization * 100)} %`])
+  paasLevelRows(utilization).forEach(r => aoa.push(r))
+  aoa.push([])
+
   const header = ['VM', 'Skupina', 'CPU GHz', 'RAM GiB', 'Disk GB', 'Tier', 'CPU', 'RAM', 'Disk', 'Cena IaaS', 'Cloudlety', 'Cena PaaS']
   aoa.push(header)
   for (const n of nodes) {
+    const cl = paasCloudletsOf(n.cpuGHz, n.ramGB)
     aoa.push([n.name, groupLabel(n.group), n.cpuGHz, n.ramGB, n.diskGB, n.diskTierLabel,
       fmtKc(n.cpuCostCZK), fmtKc(n.ramCostCZK), fmtKc(n.diskCostCZK), n.totalFormatted,
-      fmt(Math.round(n.cloudlets * utilization)), fmtKc(n.cloudlets * (c.cloudletRateCZK || 0) * utilization)])
+      fmt(Math.round(cl * utilization)), fmtKc(cl * paasCloudPriceCzk * utilization)])
   }
 
   // --- Topologie jako obrázek vložený do binárního .xlsx ---
@@ -890,8 +900,31 @@ const commitSel = $('commitSel')
 if (commitSel) commitSel.onchange = () => {
   state.commitment = parseInt(commitSel.value, 10)
   if (!Number.isFinite(state.commitment)) state.commitment = 12
+  const pcsel = $('paasCommitSel')
+  if (pcsel) pcsel.value = commitSel.value
   recalc()
 }
+
+const paasCommitSel = $('paasCommitSel')
+if (paasCommitSel) paasCommitSel.onchange = () => {
+  state.commitment = parseInt(paasCommitSel.value, 10)
+  if (!Number.isFinite(state.commitment)) state.commitment = 12
+  if (commitSel) commitSel.value = paasCommitSel.value
+  recalc()
+}
+
+const bindPaasParam = (input, setter, min) => {
+  if (!input) return
+  input.oninput = () => {
+    let v = parseFloat(input.value)
+    if (!Number.isFinite(v) || v < min) v = min
+    setter(v)
+    if (lastCosting) renderCosting(lastCosting)
+  }
+}
+bindPaasParam($('paasCloudRamMiB'), v => { paasCloudRamMiB = v }, 1)
+bindPaasParam($('paasCloudCpuMHz'), v => { paasCloudCpuMHz = v }, 1)
+bindPaasParam($('paasCloudPriceCzk'), v => { paasCloudPriceCzk = v }, 0)
 
 const paasRange = $('paasUtilRange')
 if (paasRange) {
@@ -903,12 +936,17 @@ if (paasRange) {
 }
 
 fetch(BP + '/api/pricing').then(r => r.json()).then(data => {
+  const commitOpts = (data.commitments || []).map(c =>
+    `<option value="${c.months}">${esc(c.label)}</option>`).join('')
   if (commitSel) {
-    commitSel.innerHTML = (data.commitments || []).map(c =>
-      `<option value="${c.months}">${esc(c.label)}</option>`).join('')
+    commitSel.innerHTML = commitOpts
     commitSel.value = String(data.defaultCommitment ?? data.commitmentMonths ?? 12)
     state.commitment = parseInt(commitSel.value, 10)
     if (!Number.isFinite(state.commitment)) state.commitment = 12
+  }
+  if (paasCommitSel) {
+    paasCommitSel.innerHTML = commitOpts
+    paasCommitSel.value = String(data.defaultCommitment ?? data.commitmentMonths ?? 12)
   }
 }).catch(() => {})
 

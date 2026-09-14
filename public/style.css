@@ -54,9 +54,6 @@ body {
 .vm-sub { font-size: 11px; color: #666; }
 .vm-spec { font-size: 12px; margin-top: 4px; color: #345; }
 .vm-spec b { color: #124; }
-.vm-cost {
-  font-size: 12px; margin-top: 4px; font-weight: 700; color: #1f6feb;
-}
 
 /* groups */
 .t-fanout { display: flex; gap: 18px; justify-content: center; align-items: flex-start; width: 100%; flex-wrap: wrap; }
@@ -256,7 +253,7 @@ body {
 .costing h2 { margin-top: 0; font-size: 12px; font-weight: 700; color: #7a5bd6; text-transform: uppercase; letter-spacing: 0.3px; }
 .cost-summary {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin-bottom: 16px;
 }
@@ -300,6 +297,33 @@ body {
 .cost-util label { font-size: 12px; color: #8a79c9; text-transform: uppercase; font-weight: 700; letter-spacing: .3px; }
 .cost-util input[type="range"] { flex: 1 1 auto; min-width: 120px; accent-color: #7a5bd6; }
 .cost-util span { font-size: 13px; font-weight: 700; color: #6b4fc0; min-width: 44px; text-align: right; }
+.cost-paas-params {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 8px;
+  border: 1px dashed #ccd4e0;
+  border-radius: 6px;
+}
+.cost-paas-params label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  color: #8a79c9;
+  text-transform: none;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+.cost-paas-params select, .cost-paas-params input {
+  font-size: 13px;
+  padding: 3px 5px;
+  border: 1px solid #ccd4e0;
+  border-radius: 4px;
+  background: #fff;
+  color: #345;
+}
+.cost-paas-params input[type="number"] { width: 100%; box-sizing: border-box; }
 .cost-paas-lvl-title {
   grid-column: 1 / -1;
   font-size: 12px;

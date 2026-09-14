@@ -91,22 +91,35 @@
         <select id="commitSel" title="Přepočítat cenu podle délky závazku"></select>
       </div>
       <div class="cost-summary">
-        <div class="cost-item"><span class="cost-label">Virtuální stroje</span><span id="vmCount">0</span></div>
-        <div class="cost-item"><span class="cost-label">CPU celkem</span><span id="totCpu">0 GHz</span></div>
-        <div class="cost-item"><span class="cost-label">RAM celkem</span><span id="totRam">0 GiB</span></div>
-        <div class="cost-item"><span class="cost-label">Disk celkem</span><span id="totDisk">0 GB</span></div>
-        <div class="cost-item"><span class="cost-label">CPU</span><span id="totCpuCost">0</span></div>
-        <div class="cost-item"><span class="cost-label">RAM</span><span id="totRamCost">0</span></div>
-        <div class="cost-item"><span class="cost-label">Disk</span><span id="totDiskCost">0</span></div>
-        <div class="cost-item"><span class="cost-label">Networking a FW</span><span id="totNetFw">0</span></div>
-        <div class="cost-item cost-total"><span class="cost-label">Celkem (IaaS)</span><span id="totPrice">0</span></div>
+        <div class="cost-item"><span class="cost-label">CPU</span><span id="totCpu">0 GHz</span></div>
+        <div class="cost-item"><span class="cost-label">RAM</span><span id="totRam">0 GiB</span></div>
+        <div class="cost-item"><span class="cost-label">Disk</span><span id="totDisk">0 GB</span></div>
+        <div class="cost-item cost-total"><span class="cost-label">Cena (IaaS)</span><span id="totPrice">0</span></div>
       </div>
+      <div class="cost-disc" id="diskTierDetail"></div>
+      <div class="cost-group-title">Cena podle skupiny</div>
+      <div class="cost-group" id="groupCostDetail"></div>
+      <div class="cost-rate-note" id="rateNote"></div>
       <div class="cost-paas" id="paasCloudlets">
         <div class="cost-paas-title">PaaS Costing / měsíc</div>
         <div class="cost-util">
-          <label for="paasUtilSel">Utilizace</label>
+          <label for="paasUtilRange">Utilizace</label>
           <input type="range" id="paasUtilRange" min="10" max="100" step="5" value="40">
           <span id="paasUtilVal">40 %</span>
+        </div>
+        <div class="cost-paas-params">
+          <label>Délka závazku
+            <select id="paasCommitSel" title="Přepočítat PaaS podle délky závazku"></select>
+          </label>
+          <label>RAM cloudletu
+            <input type="number" id="paasCloudRamMiB" value="128" min="1" step="1"> MiB
+          </label>
+          <label>CPU cloudletu
+            <input type="number" id="paasCloudCpuMHz" value="400" min="1" step="1"> MHz
+          </label>
+          <label>Cena / cloudlet
+            <input type="number" id="paasCloudPriceCzk" value="138.56" min="0" step="0.01"> Kč
+          </label>
         </div>
         <div class="cost-paas-level">
           <div class="cost-item"><span class="cost-label">Cloudlety</span><span id="totCloudletsUtil" title="1 cloudlet = 128 MiB RAM + 400 MHz CPU">0</span></div>
@@ -115,10 +128,6 @@
           <div class="cost-item cost-total"><span class="cost-label">Cena (PaaS)</span><span id="totCloudCostUtil">0 Kč</span></div>
         </div>
       </div>
-      <div class="cost-disc" id="diskTierDetail"></div>
-      <div class="cost-group-title">Cena podle skupiny</div>
-      <div class="cost-group" id="groupCostDetail"></div>
-      <div class="cost-rate-note" id="rateNote"></div>
       <table class="cost-table" id="costTable">
         <thead><tr><th>VM</th><th>Skupina</th><th>CPU GHz</th><th>RAM GiB</th><th>Disk GB</th><th>Tier</th><th>CPU</th><th>RAM</th><th>Disk</th><th>Cena IaaS</th><th title="1 cloudlet = 128 MiB RAM + 400 MHz CPU">Cloudlety</th><th title="cena cloudlet × utilizace (PaaS)">Cena PaaS</th></tr></thead>
         <tbody id="costTableBody"></tbody>
