@@ -102,14 +102,12 @@ function removeGroup(key) {
 }
 
 function vmHtml(n) {
-  const cost = n._cost ? `<div class="vm-cost">${esc(n._cost)}/měs</div>` : ''
   const cls = n.group === 'opnsense' ? 'vm vm-click vm-firewall' : 'vm vm-click'
   return `
     <div class="${esc(cls)}" data-idx="${esc(n.idx)}" title="Klikni pro úpravu">
       <div class="vm-title">${esc(n.name)}</div>
       <div class="vm-sub">${esc(groupLabel(n.group))}</div>
       <div class="vm-spec">CPU <b>${esc(fmt(n.cpuGHz))}</b> GHz · RAM <b>${esc(fmt(n.ramGB))}</b> GiB · Disk <b>${esc(fmt(n.diskGB))}</b> GB · ${esc(tierLabel(n.diskTier))}</div>
-      ${cost}
     </div>`
 }
 
@@ -215,7 +213,7 @@ function strip(n) {
 const NEW_VM = '__new__'
 
 function autoName(group) {
-  const known = { app: 'App', db: 'DB', other: 'VM', opnsense: 'OPNsense' }[group]
+  const known = { app: 'App', db: 'DB', other: 'VM', opnsense: 'Sec' }[group]
   const base = known || (groupLabel(group) || 'VM')
   const used = new Set(state.nodes.filter(n => n.group === group).map(n => n.name))
   let i = 1
@@ -753,7 +751,7 @@ function logText(msg) {
   if (msg.type === 'vm-ok')
     return '✓ ' + msg.name + ' hotovo' + (msg.started ? ' (běží)' : ' (vytvořeno)') + (msg.serverUUID ? ' · ' + msg.serverUUID : '')
   if (msg.type === 'wan-ip')
-    return '🌐 Public IP ' + (msg.name || 'OPNsense') + ': ' + (msg.publicIP || '')
+    return '🌐 Public IP ' + (msg.name || 'Sec-01') + ': ' + (msg.publicIP || '')
   if (msg.type === 'vm-err') return '✗ ' + msg.name + ' — ' + (msg.error || 'chyba')
   return JSON.stringify(msg)
 }
