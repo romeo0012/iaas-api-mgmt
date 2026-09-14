@@ -665,6 +665,7 @@ async function exportExcel() {
   pushRow(['RAM', fmt1((t.ramGB || 0) * utilization) + ' GiB'], ['lbl', 'val'])
   pushRow(['CPU', fmt1((t.cpuGHz || 0) * utilization) + ' GHz'], ['lbl', 'val'])
   pushRow(['Cena (PaaS)', fmtKc(paasCloudletsCost(paasTotalCl, paasCommitment) * utilization)], ['lbl', 'total'])
+  pushRow(['Cena / cloudlet (dle utilizace)', fmtKc(paasTotalCl > 0 ? (paasCloudletsCost(paasTotalCl, paasCommitment) / paasTotalCl) * utilization : 0)], ['lbl', 'val'])
   pushRow([], 'blank')
 
   const header = ['VM', 'Skupina', 'CPU GHz', 'RAM GiB', 'Disk GB', 'Tier', 'CPU', 'RAM', 'Disk', 'Cena IaaS', 'Cloudlety', 'Cena PaaS']
