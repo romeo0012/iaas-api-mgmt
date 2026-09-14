@@ -369,6 +369,7 @@ body {
 .cost-group-row .cg-cost { font-weight: 700; min-width: 80px; text-align: right; }
 
 .cost-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cost-sep { border-top: 2px dashed #ccd4e0; margin: 14px 0 10px; }
 .cost-table th, .cost-table td { border: 1px solid #eef0f3; padding: 6px 8px; text-align: left; }
 .cost-table th { background: #f6f8fa; }
 .cost-table td:last-child { font-weight: 700; }

@@ -21,6 +21,8 @@ let paasCloudRamMiB = 128
 let paasCloudCpuMHz = 400
 let paasCloudPriceCzk = (typeof window.PAAS_CLOUDLET_RATE_CZK === 'number' && window.PAAS_CLOUDLET_RATE_CZK > 0)
   ? window.PAAS_CLOUDLET_RATE_CZK : 138.56
+let paasCommitment = 12
+let paasCommitCpuRates = {}
 let editingId = null
 let editingVlan = null
 let lastCosting = null
@@ -121,6 +123,17 @@ function paasCloudletsOf(cpuGHz, ramGB) {
   return Math.ceil(Math.max(cpuGHz / clCpu, ramGB / clRam))
 }
 
+function paasRateForCommit(cm) {
+  const r12 = paasCommitCpuRates[12]
+  const r = paasCommitCpuRates[cm]
+  if (!r12 || !r) return paasCloudPriceCzk
+  return paasCloudPriceCzk * (r / r12)
+}
+
+function commitLabel(cm) {
+  return cm === 0 ? 'Bez závazku' : cm + ' měs.'
+}
+
 function renderCosting(costing) {
   lastCosting = costing
   const t = costing.totals
@@ -132,7 +145,7 @@ function renderCosting(costing) {
   const baseCloudlets = costing.perNode.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
   const baseRam = baseCloudlets * (paasCloudRamMiB / 1024)
   const baseCpu = baseCloudlets * (paasCloudCpuMHz / 1000)
-  const baseCost = baseCloudlets * paasCloudPriceCzk
+  const baseCost = baseCloudlets * paasRateForCommit(paasCommitment)
   const utilPct = paasUtil / 100
   const el = $('totCloudletsUtil')
   if (el) el.textContent = fmt(Math.round(baseCloudlets * utilPct))
@@ -140,7 +153,7 @@ function renderCosting(costing) {
   $('totCloudCpuUtil').textContent = fmt1(baseCpu * utilPct) + ' GHz'
   $('totCloudCostUtil').textContent = fmt(baseCost * utilPct) + ' Kč'
   const paasCommitSel = $('paasCommitSel')
-  if (paasCommitSel) paasCommitSel.value = String(costing.commitmentMonths)
+  if (paasCommitSel) paasCommitSel.value = String(paasCommitment)
   const paasMRam = $('paasCloudRamMiB'); if (paasMRam) paasMRam.value = String(paasCloudRamMiB)
   const paasMCpu = $('paasCloudCpuMHz'); if (paasMCpu) paasMCpu.value = String(paasCloudCpuMHz)
   const paasMCost = $('paasCloudPriceCzk'); if (paasMCost) paasMCost.value = String(paasCloudPriceCzk)
@@ -199,7 +212,7 @@ function renderCosting(costing) {
       <td>${fmt(n.diskCostCZK)} Kč</td>
       <td class="iaas-total">${n.totalFormatted}</td>
       <td>${fmt(Math.round(cl * utilPct))}</td>
-      <td>${fmt(Math.round(cl * paasCloudPriceCzk * utilPct))} Kč</td>
+      <td>${fmt(Math.round(cl * paasRateForCommit(paasCommitment) * utilPct))} Kč</td>
     </tr>`
   }).join('')
 }
@@ -494,11 +507,12 @@ async function exportExcel() {
   const fmtKc = n => fmt(n == null ? 0 : n) + ' Kč'
   const paasLevelRows = (pct) => {
     const totalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
+    const rate = paasRateForCommit(paasCommitment)
     return [
       ['Cloudlety', fmt(Math.round(totalCl * pct))],
       ['RAM', fmt1(totalCl * (paasCloudRamMiB / 1024) * pct) + ' GiB'],
       ['CPU', fmt1(totalCl * (paasCloudCpuMHz / 1000) * pct) + ' GHz'],
-      ['Cena (PaaS)', fmtKc(totalCl * paasCloudPriceCzk * pct)],
+      ['Cena (PaaS)', fmtKc(totalCl * rate * pct)],
     ]
   }
 
@@ -548,7 +562,7 @@ async function exportExcel() {
   aoa.push([])
 
   aoa.push(['PaaS Costing / měsíc'])
-  aoa.push([`Závazek: ${commit} · Cloudlet: ${paasCloudRamMiB} MiB RAM + ${paasCloudCpuMHz} MHz CPU · Cena ${fmt1(paasCloudPriceCzk)} Kč/měs`])
+  aoa.push([`Závazek (PaaS): ${commitLabel(paasCommitment)} · Cloudlet: ${paasCloudRamMiB} MiB RAM + ${paasCloudCpuMHz} MHz CPU · Cena ${fmt1(paasRateForCommit(paasCommitment))} Kč/měs`])
   aoa.push([`Utilizace ${Math.round(utilization * 100)} %`])
   paasLevelRows(utilization).forEach(r => aoa.push(r))
   aoa.push([])
@@ -559,7 +573,7 @@ async function exportExcel() {
     const cl = paasCloudletsOf(n.cpuGHz, n.ramGB)
     aoa.push([n.name, groupLabel(n.group), n.cpuGHz, n.ramGB, n.diskGB, n.diskTierLabel,
       fmtKc(n.cpuCostCZK), fmtKc(n.ramCostCZK), fmtKc(n.diskCostCZK), n.totalFormatted,
-      fmt(Math.round(cl * utilization)), fmtKc(cl * paasCloudPriceCzk * utilization)])
+      fmt(Math.round(cl * utilization)), fmtKc(cl * paasRateForCommit(paasCommitment) * utilization)])
   }
 
   // --- Topologie jako obrázek vložený do binárního .xlsx ---
@@ -900,27 +914,28 @@ const commitSel = $('commitSel')
 if (commitSel) commitSel.onchange = () => {
   state.commitment = parseInt(commitSel.value, 10)
   if (!Number.isFinite(state.commitment)) state.commitment = 12
-  const pcsel = $('paasCommitSel')
-  if (pcsel) pcsel.value = commitSel.value
   recalc()
 }
 
 const paasCommitSel = $('paasCommitSel')
 if (paasCommitSel) paasCommitSel.onchange = () => {
-  state.commitment = parseInt(paasCommitSel.value, 10)
-  if (!Number.isFinite(state.commitment)) state.commitment = 12
-  if (commitSel) commitSel.value = paasCommitSel.value
-  recalc()
+  paasCommitment = parseInt(paasCommitSel.value, 10)
+  if (!Number.isFinite(paasCommitment)) paasCommitment = 12
+  if (lastCosting) renderCosting(lastCosting)
+  else recalc()
 }
 
 const bindPaasParam = (input, setter, min) => {
   if (!input) return
-  input.oninput = () => {
-    let v = parseFloat(input.value)
+  const apply = () => {
+    let v = parseFloat(String(input.value).replace(',', '.'))
     if (!Number.isFinite(v) || v < min) v = min
     setter(v)
     if (lastCosting) renderCosting(lastCosting)
+    else recalc()
   }
+  input.oninput = apply
+  input.onchange = apply
 }
 bindPaasParam($('paasCloudRamMiB'), v => { paasCloudRamMiB = v }, 1)
 bindPaasParam($('paasCloudCpuMHz'), v => { paasCloudCpuMHz = v }, 1)
@@ -938,15 +953,20 @@ if (paasRange) {
 fetch(BP + '/api/pricing').then(r => r.json()).then(data => {
   const commitOpts = (data.commitments || []).map(c =>
     `<option value="${c.months}">${esc(c.label)}</option>`).join('')
+  paasCommitCpuRates = {}
+  for (const c of (data.commitments || [])) paasCommitCpuRates[c.months] = c.cpu
+  const defCm = Number(data.defaultCommitment ?? data.commitmentMonths ?? 12)
   if (commitSel) {
     commitSel.innerHTML = commitOpts
-    commitSel.value = String(data.defaultCommitment ?? data.commitmentMonths ?? 12)
+    commitSel.value = String(defCm)
     state.commitment = parseInt(commitSel.value, 10)
     if (!Number.isFinite(state.commitment)) state.commitment = 12
   }
   if (paasCommitSel) {
     paasCommitSel.innerHTML = commitOpts
-    paasCommitSel.value = String(data.defaultCommitment ?? data.commitmentMonths ?? 12)
+    paasCommitSel.value = String(defCm)
+    paasCommitment = parseInt(paasCommitSel.value, 10)
+    if (!Number.isFinite(paasCommitment)) paasCommitment = 12
   }
 }).catch(() => {})
 
