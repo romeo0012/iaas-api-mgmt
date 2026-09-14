@@ -12,7 +12,7 @@
     "opnsense": { "name": "WAN", "uuid": "" }
   },
   "nodes": [
-    { "group": "opnsense", "name": "Sec-01", "label": "Firewall", "cpuGHz": 4, "ramGB": 4, "diskGB": 20, "diskTier": "standard" },
+    { "group": "security", "name": "Sec-01", "label": "Firewall/LoadBalancing", "cpuGHz": 4, "ramGB": 4, "diskGB": 20, "diskTier": "standard" },
     { "group": "app", "name": "App-01", "label": "", "cpuGHz": 7.2, "ramGB": 2.25, "diskGB": 50, "diskTier": "standard" },
     { "group": "db", "name": "DB-01", "label": "", "cpuGHz": 4, "ramGB": 4, "diskGB": 120, "diskTier": "fast" }
   ]
