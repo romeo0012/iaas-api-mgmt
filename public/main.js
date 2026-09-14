@@ -143,8 +143,8 @@ function renderCosting(costing) {
   $('totRam').textContent = fmt(t.ramGB) + ' GiB'
   $('totDisk').textContent = fmt(t.diskGB) + ' GB'
   const baseCloudlets = costing.perNode.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
-  const baseRam = baseCloudlets * (paasCloudRamMiB / 1024)
-  const baseCpu = baseCloudlets * (paasCloudCpuMHz / 1000)
+  const baseRam = t.ramGB
+  const baseCpu = t.cpuGHz
   const baseCost = baseCloudlets * paasRateForCommit(paasCommitment)
   const utilPct = paasUtil / 100
   const el = $('totCloudletsUtil')
@@ -510,8 +510,8 @@ async function exportExcel() {
     const rate = paasRateForCommit(paasCommitment)
     return [
       ['Cloudlety', fmt(Math.round(totalCl * pct))],
-      ['RAM', fmt1(totalCl * (paasCloudRamMiB / 1024) * pct) + ' GiB'],
-      ['CPU', fmt1(totalCl * (paasCloudCpuMHz / 1000) * pct) + ' GHz'],
+      ['RAM', fmt1((t.ramGB || 0) * pct) + ' GiB'],
+      ['CPU', fmt1((t.cpuGHz || 0) * pct) + ' GHz'],
       ['Cena (PaaS)', fmtKc(totalCl * rate * pct)],
     ]
   }
