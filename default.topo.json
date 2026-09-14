@@ -2,8 +2,8 @@
   "envName": "dev-kube.prg1paas.t-cloud.eu",
   "commitment": 12,
   "groups": {
-    "app": { "name": "Aplikační servery", "label": "Aplikační", "vlanName": "APP", "diskTier": "standard" },
-    "db": { "name": "Databázové servery", "label": "Databázový", "vlanName": "DATA", "diskTier": "fast" },
+    "app": { "name": "Aplikační servery", "label": "Aplikace", "vlanName": "APP", "diskTier": "standard" },
+    "db": { "name": "Databázové servery", "label": "Databáze", "vlanName": "DATA", "diskTier": "fast" },
     "opnsense": { "name": "Bezpečnost", "label": "Bezpečnost", "vlanName": "WAN", "diskTier": "standard" }
   },
   "vlans": {
