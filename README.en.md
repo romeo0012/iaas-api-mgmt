@@ -116,20 +116,22 @@ An informational section in the UI — **does not affect the IaaS price**. It mo
   (Verified: 10 cloudlets = 1 525 CZK; 100 cloudlets = 13 566.9 CZK ⇒ tier 2 ≈ 133.7989 → displayed as 133.80 CZK. Example: 82 cloudlets = 10×152.50 + 72×133.80 = **11 158.6 CZK**.)
 - **Commitment ratio (PaaS)**: `paasCommitRatio(cm) = cpuRate(cm) / cpuRate(12m)`. Both tier prices are multiplied by this ratio (as with IaaS, an env override applies only to the default commitment). The PaaS commitment is chosen independently of the IaaS commitment (`paasCommitSel`).
 - **Effective average rate**: `effRate = cloudletCost(total) / total` — per-VM rows use it so the per-row sum matches the total tiered price.
-- **Utilization**: `paasUtil` (default 40 %, env `IaaS_PAAS_UTILIZATION`, UI slider 10–100 %). The "PaaS" section computes `total × utilization`:
-  - cloudlets, RAM GiB and CPU GHz are multiplied by `utilization/100`;
+- **Utilization**: `paasUtil` (default 40 %, env `IaaS_PAAS_UTILIZATION`, UI slider 10–100 %). The "PaaS" section (order: **CPU, RAM, Cloudlets, Price / cloudlet, Price (PaaS)**) computes `total × utilization`:
+  - `CPU = Σ cpuGHz × utilization/100`, `RAM = Σ ramGB × utilization/100`, `Cloudlets = round(total × utilization/100)`;
+  - **price / cloudlet (per utilization)** = `effRate × utilization/100` (average rate after tiering × utilization);
   - **price (PaaS) = cloudletCost(total) × utilization/100**.
   - VM table: "Cloudlets" column = `round(cl × utilization/100)`, "PaaS price" = `round(cl × effRate × utilization/100) CZK`.
 - **PaaS commitment — server vs UI**: the server reports the raw tiered price in `/api/*` (`cloudletCostCZK`, without the commitment ratio); the UI applies the commitment ratio and utilization locally.
 
 ### 3. Excel export (.xlsx)
 
-Clicking "Export Excel" mirrors the web content exactly (`exportExcel` in `public/main.js`): both costings (IaaS + PaaS with utilization), disk by tier, price by group, rates, and the VM table (columns `VM, Group, CPU GHz, RAM GiB, Disk GB, Tier, CPU, RAM, Disk, Price IaaS, Cloudlets, Price PaaS`). A **topology screenshot** (html2canvas + JSZip) is embedded at the top when available; rows are shifted so the image does not cover the text.
+Clicking "Export Excel" mirrors the web content exactly (`exportExcel` in `public/main.js`): both costings (IaaS + PaaS with utilization), disk by tier, price by group, rates, and the VM table (columns `VM, Group, CPU GHz, RAM GiB, Disk GB, Tier, CPU, RAM, Disk, Price IaaS, Cloudlets, Price PaaS`). The PaaS summary rows follow the same order as the web (CPU → RAM → Cloudlets → **Price / cloudlet (per utilization)** → Price (PaaS)). A **topology screenshot** (html2canvas + JSZip) is embedded at the top when available; rows are shifted so the image does not cover the text.
 
 ### 4. Topology
 
 - **Built-in default topology**: `Sec-01` (OPNsense, Standard, 4+4+20) + `App-01` (Standard, 7.2+2.25+50) + `DB-01` (Fast, 4+4+120). If `default.topo.json` exists (same format as the UI's `.topo.json` export), it is loaded **at server startup** instead.
-- **Groups** (`lib/architecture.js` `defaultGroups()`): `app` (Application servers, APP, standard), `db` (Database servers, DATA, fast), `opnsense` (Security, WAN, standard), `other` (Other servers, LAN, superfast). The group's default disk tier is used when a VM has none of its own.
+  - Shipped `default.topo.json`: `envName = dev-kube.prg1paas.t-cloud.eu`, group labels `Aplikace` / `Databáze` / `Bezpečnost` (Application / Database / Security), `Sec-01` label `Firewall/LoadBalancing`. The firewall node's group is **`security`** in the JSON — `compute()` in `lib/architecture.js` **aliases it to `opnsense`**, so the node stays in the topology (rendered as a firewall with a public IP on its NIC). The alias also applies to manually uploaded `.topo.json` files.
+- **Groups** (`lib/architecture.js` `defaultGroups()`): `app` (Application servers, APP, standard), `db` (Database servers, DATA, fast), `opnsense` (Security, WAN, standard; may appear as the `security` alias in topologies), `other` (Other servers, LAN, superfast). The group's default disk tier is used when a VM has none of its own.
 - **Per-group VLANs** (`defaultVlans()`): every group has `{ name, uuid }`; the UI draws connector lines between the groups and OPNsense — **clicking a connector opens the VLAN editor** (name + UUID). The server merges the topology's VLANs over the defaults in `compute()`.
 - **Persistence is purely client-side** (`localStorage` key `iaas_topology` + a JSON `.topo.json` file): the **"Save topology" / "Load topology"** and **"Download topology" / "Upload topology"** buttons. It stores `state` (nodes, groups incl. renamed display names, vlans, commitment, envName) and restores it via the socket `recalc`. There is no server-side storage.
 

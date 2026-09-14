@@ -116,20 +116,22 @@ Postup výpočtu (server `lib/pricing.js`, klientsky zrcadleno v `public/main.js
   (Ověřeno: 10 cloudletů = 1 525 Kč; 100 cloudletů = 13 566.9 Kč ⇒ tier 2 ≈ 133.7989 → 133.80 Kč zobrazeno. Příklad: 82 cloudletů = 10×152.50 + 72×133.80 = **11 158.6 Kč**.)
 - **Poměr závazku (PaaS)**: `paasCommitRatio(cm) = sazbaCPU(cm) / sazbaCPU(12m)`. Ceny obou pásem se tímto poměrem pronásobí (jako IaaS tedy: env override platí jen pro defaultní závazek). PaaS závazek se vybírá nezávisle na IaaS závazku (`paasCommitSel`).
 - **Efektivní průměrná sazba**: `effRate = cenaCloudletů(celkem) / celkem` — per-VM řádky ho používají, aby součet per-řádků seděl na celkovou vrstvenou cenu.
-- **Využití (utilizace)**: `paasUtil` (default 40 %, env `IaaS_PAAS_UTILIZATION`, UI slider 10–100 %). Sekce „PaaS" počítá `celkem × utilization`:
-  - Cloudlety, RAM GiB i CPU GHz na využiti vynásobena `utilization/100`;
+- **Využití (utilizace)**: `paasUtil` (default 40 %, env `IaaS_PAAS_UTILIZATION`, UI slider 10–100 %). Sekce „PaaS" (pořadí: **CPU, RAM, Cloudlety, Cena / cloudlet, Cena (PaaS)**) počítá `celkem × utilization`:
+  - `CPU = Σ cpuGHz × utilization/100`, `RAM = Σ ramGB × utilization/100`, `Cloudlety = round(celkem × utilization/100)`;
+  - **Cena / cloudlet (dle využití)** = `effRate × utilization/100` (průměrná sazba po vrstvení × využití);
   - **cena (PaaS) = cenaCloudletů(celkem) × utilization/100**.
   - Tabulka VM: sloupec „Cloudlety" = `round(cl × utilization/100)`, „Cena PaaS" = `round(cl × effRate × utilization/100) Kč`.
 - **PaaS závazek — server vs UI**: server hlásí v `/api/*` surovou vrstvenou cenu (`cloudletCostCZK`, bez poměru závazku); UI aplikuje poměr závazku a utilizaci lokálně.
 
 ### 3. Export Excel (.xlsx)
 
-Kliknutí „Export Excel" zrcadlí přesně web obsah (`exportExcel` v `public/main.js`): oba costingy (IaaS + PaaS s utilizací), disk podle tieru, cenu podle skupiny, sazby, tabulku VM (sloupce `VM, Skupina, CPU GHz, RAM GiB, Disk GB, Tier, CPU, RAM, Disk, Cena IaaS, Cloudlety, Cena PaaS`). Nahoře se vloží **obrázek topologie** (html2canvas + JSZip), pokud je k dispozici; řádky se posunou tak, aby obrázek nepřekrýval text.
+Kliknutí „Export Excel" zrcadlí přesně web obsah (`exportExcel` v `public/main.js`): oba costingy (IaaS + PaaS s utilizací), disk podle tieru, cenu podle skupiny, sazby, tabulku VM (sloupce `VM, Skupina, CPU GHz, RAM GiB, Disk GB, Tier, CPU, RAM, Disk, Cena IaaS, Cloudlety, Cena PaaS`). PaaS souhrn má řádky ve stejném pořadí jako web (CPU → RAM → Cloudlety → **Cena / cloudlet (dle utilizace)** → Cena (PaaS)). Nahoře se vloží **obrázek topologie** (html2canvas + JSZip), pokud je k dispozici; řádky se posunou tak, aby obrázek nepřekrýval text.
 
 ### 4. Topologie
 
 - **Defaultní topologie** (build-in): `Sec-01` (OPNsense, Standard, 4+4+20) + `App-01` (Standard, 7.2+2.25+50) + `DB-01` (Fast, 4+4+120). Pokud existuje `default.topo.json` (formát stejný jako `.topo.json` export UI), načte se **při startu serveru** místo ní.
-- **Skupiny** (`lib/architecture.js` `defaultGroups()`): `app` (Aplikační servery, APP, standard), `db` (Databázové servery, DATA, fast), `opnsense` (Bezpečnost, WAN, standard), `other` (Ostatní servery, LAN, superfast). Defaultní disk tier skupiny se použije, když VM nemá vlastní.
+  - Dodávané `default.topo.json`: `envName = dev-kube.prg1paas.t-cloud.eu`, skupinové labely `Aplikace` / `Databáze` / `Bezpečnost`, `Sec-01` label `Firewall/LoadBalancing`. Skupina firewallu je v JSON **`security`** — `compute()` v `lib/architecture.js` ji **aliasuje na `opnsense`**, takže uzel zůstává v topologii (renderuje se jako firewall s veřejnou IP na NIC). Alias platí i pro ručně nahrané `.topo.json`.
+- **Skupiny** (`lib/architecture.js` `defaultGroups()`): `app` (Aplikační servery, APP, standard), `db` (Databázové servery, DATA, fast), `opnsense` (Bezpečnost, WAN, standard; v topologii se může objevit i jako alias `security`), `other` (Ostatní servery, LAN, superfast). Defaultní disk tier skupiny se použije, když VM nemá vlastní.
 - **Per-skupinové VLANy** (`defaultVlans()`): každá skupina má `{ name, uuid }`; UI zobrazí spojnice mezi skupinami a OPNsense — **klik na spojnici otevře editor VLAN** (název + UUID). Server v `compute()` sloučí VLANy z topologie přes defaulty.
 - **Perzistence je čistě klientská** (`localStorage` klíč `iaas_topology` + JSON `.topo.json` soubor): tlačítka **„Uložit topologii" / „Načíst topologii"** a **„Stáhnout topologii" / „Nahrát topologii"**. Ukládá se `state` (nodes, groups vč. přejmenovaných názvů, vlans, commitment, envName) a obnovuje se přes socket `recalc`. Není žádný serverový úložiště.
 
