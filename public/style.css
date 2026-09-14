@@ -290,7 +290,7 @@ body {
 }
 .cost-paas-level {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
 }
 .cost-util { display: flex; align-items: center; gap: 10px; margin: 2px 0 8px; }
@@ -299,7 +299,7 @@ body {
 .cost-util span { font-size: 13px; font-weight: 700; color: #6b4fc0; min-width: 44px; text-align: right; }
 .cost-paas-params {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
   padding: 8px;
   border: 1px dashed #ccd4e0;
