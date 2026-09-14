@@ -664,11 +664,11 @@ async function exportExcel() {
   pushRow([`Závazek (PaaS): ${commitLabel(paasCommitment)} · Cloudlet: ${paasCloudRamMiB} MiB RAM + ${paasCloudCpuMHz} MHz CPU · Cena: ${fmt1(paasCloudPriceCzk * paasCommitRatio(paasCommitment))} Kč (1–${PAAS_TIER1_CLOUDLETS} cl) / ${fmt1(paasCloudPriceTier2Czk * paasCommitRatio(paasCommitment))} Kč (${PAAS_TIER1_CLOUDLETS}+ cl)`], 'note')
   pushRow([`Utilizace ${Math.round(utilization * 100)} %`], 'note')
   const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
-  pushRow(['Cloudlety', fmt(Math.round(paasTotalCl * utilization))], ['lbl', 'val'])
-  pushRow(['RAM', fmt1((t.ramGB || 0) * utilization) + ' GiB'], ['lbl', 'val'])
   pushRow(['CPU', fmt1((t.cpuGHz || 0) * utilization) + ' GHz'], ['lbl', 'val'])
-  pushRow(['Cena (PaaS)', fmtKc(paasCloudletsCost(paasTotalCl, paasCommitment) * utilization)], ['lbl', 'total'])
+  pushRow(['RAM', fmt1((t.ramGB || 0) * utilization) + ' GiB'], ['lbl', 'val'])
+  pushRow(['Cloudlety', fmt(Math.round(paasTotalCl * utilization))], ['lbl', 'val'])
   pushRow(['Cena / cloudlet (dle utilizace)', fmtKc(paasTotalCl > 0 ? (paasCloudletsCost(paasTotalCl, paasCommitment) / paasTotalCl) * utilization : 0)], ['lbl', 'val'])
+  pushRow(['Cena (PaaS)', fmtKc(paasCloudletsCost(paasTotalCl, paasCommitment) * utilization)], ['lbl', 'total'])
   pushRow([], 'blank')
 
   const header = ['VM', 'Skupina', 'CPU GHz', 'RAM GiB', 'Disk GB', 'Tier', 'CPU', 'RAM', 'Disk', 'Cena IaaS', 'Cloudlety', 'Cena PaaS']
