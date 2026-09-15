@@ -116,7 +116,12 @@ An informational section in the UI — **does not affect the IaaS price**. It mo
   | **Reserved** CZK/cl/month | 98.84 | 93.88 | 88.91 | 84.02 | 79.06 |
   | **Dynamic** CZK/cl/month | 148.26 | 144.54 | 140.82 | 137.09 | 133.44 |
   (Hourly rates × 730 h: 0.1354/0.1286/0.1218/0.1151/0.1083 → 98.84/93.88/88.91/84.02/79.06 and 0.2031/0.1980/0.1929/0.1878/0.1828 → 148.26/144.54/140.82/137.09/133.44. Discounts: reserved 33–47 %, dynamic 0–10 %.)
-- **Price calculation**: `cloudletCost(N) = band(N, reserved) + band(ceil(N × utilization), dynamic)`, where `band(n, rates)` distributes `n` across the bands (e.g. N=82: 16×98.84 + 16×93.88 + 32×88.91 + 18×84.02 = **7 441 CZK** reserved; dynamic 33 = 16×148.26 + 16×144.54 + 1×140.82 = **4 825.62 CZK**; total **12 266.62 CZK**).
+- **Price calculation**:
+  - **Reserved cloudlets R** = always-paid minimum = `ceil(N × 15 %)` (e.g. 82 → 13);
+  - **Dynamic cloudlets D** = actually used above the reservation = `ceil(N × utilization) − R` (e.g. 82 @40 % → `33 − 13 = 20`; @100 % → `82 − 13 = 69`);
+  - **Cloudlet price** = `band(R, reserved rates) + band(D, dynamic rates)`, where `band(n, rates)` distributes `n` across the volume bands;
+  - example @40 %: R=13 → 13×98.84 = **1 284.92 CZK**; D=20 → 16×148.26 + 4×144.54 = **2 950.32 CZK**; total **4 235.24 CZK**;
+  - example @100 %: R=13 → **1 284.92 CZK**; D=69 → 16×148.26 + 16×144.54 + 32×140.82 + 5×137.09 = **9 876.49 CZK**; total **11 161.41 CZK** (average ~136 CZK/cl, not 2× as in the previous model).
 - **Utilization**: `paasUtil` (default 40 %, env `IaaS_PAAS_UTILIZATION`, UI slider 10–100 %) determines the number of **dynamic** cloudlets `ceil(N × utilization)`; the reserved ones are always paid unchanged. The CPU/RAM figures shown in the section reflect utilization (actually used capacity).
 - **Other Virtuozzo line items** (added to the PaaS total, not affected by utilization):
   - **PaaS disk** = Σ diskGB of all VMs × **2.40 CZK/GB/month** (0.003286 CZK/h × 730);

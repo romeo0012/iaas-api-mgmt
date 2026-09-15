@@ -23,6 +23,7 @@ let paasCloudCpuMHz = 400
 const PAAS_RESERVED_RATES = [98.84, 93.88, 88.91, 84.02, 79.06] // 1–16, 17–32, 33–64, 65–128, 129+
 const PAAS_DYNAMIC_RATES = [148.26, 144.54, 140.82, 137.09, 133.44] // 1–16, 17–32, 33–64, 65–128, 129+
 const PAAS_BANDS = [16, 32, 64, 128, Infinity]
+const PAAS_RESERVATION_PCT = 15 // rezervované cloudlety = vždy placené minimum (15 % z celku)
 const PAAS_DISK_RATE_CZK = 2.40 // cena / GB / měsíc (0.003286 Kč/h × 730)
 const PAAS_PUBLIC_IP_RATE_CZK = 120.01 // cena / IP / měsíc (0.1644 Kč/h × 730)
 let paasCommitment = 12
@@ -146,12 +147,18 @@ function paasBandedCost(count, rateArr) {
   return cost
 }
 
+function paasSplitCl(totalCl, util) {
+  const u = util != null ? util : paasUtil / 100
+  const reserved = Math.ceil(totalCl * PAAS_RESERVATION_PCT / 100)
+  const dynamic = Math.max(0, Math.ceil(totalCl * u) - reserved)
+  return { reserved, dynamic }
+}
+
 function paasCloudletsCost(totalCl, cm, util) {
   const ratio = paasCommitRatio(cm)
-  const utilP = util != null ? util : paasUtil / 100
-  const reserved = paasBandedCost(totalCl, PAAS_RESERVED_RATES)
-  const dynamic = paasBandedCost(Math.ceil(totalCl * utilP), PAAS_DYNAMIC_RATES)
-  return (reserved + dynamic) * ratio
+  const { reserved, dynamic } = paasSplitCl(totalCl, util)
+  const cost = paasBandedCost(reserved, PAAS_RESERVED_RATES) + paasBandedCost(dynamic, PAAS_DYNAMIC_RATES)
+  return cost * ratio
 }
 
 function commitLabel(cm) {
@@ -170,8 +177,9 @@ function renderCosting(costing) {
   const baseRam = t.ramGB
   const baseCpu = t.cpuGHz
   const utilPct = paasUtil / 100
-  const paasReservedCl = baseCloudlets
-  const paasDynamicCl = Math.ceil(baseCloudlets * utilPct)
+  const paasSplit = paasSplitCl(baseCloudlets, utilPct)
+  const paasReservedCl = paasSplit.reserved
+  const paasDynamicCl = paasSplit.dynamic
   const paasCloudletCost = paasCloudletsCost(baseCloudlets, paasCommitment, utilPct)
   const paasEffRate = baseCloudlets > 0 ? paasCloudletCost / baseCloudlets : 0
   const paasDiskCl = Array.isArray(costing.perNode)
@@ -254,8 +262,8 @@ function renderCosting(costing) {
       <td>${fmt(n.ramCostCZK)} Kč</td>
       <td>${fmt(n.diskCostCZK)} Kč</td>
       <td class="iaas-total">${n.totalFormatted}</td>
-      <td>${fmt(Math.round(cl * utilPct))}</td>
-      <td>${fmt(Math.round(cl * paasEffRate * utilPct))} Kč</td>
+      <td>${fmt(Math.round(cl))}</td>
+      <td>${fmt(Math.round(cl * paasEffRate))} Kč</td>
     </tr>`
   }).join('')
 }
@@ -689,10 +697,12 @@ async function exportExcel() {
   pushRow([], 'blank')
 
   pushRow(['PaaS Costing / měsíc'], 'secPaaS')
-  pushRow([`Závazek (PaaS): ${commitLabel(paasCommitment)} · Cloudlet: ${paasCloudRamMiB} MiB RAM + ${paasCloudCpuMHz} MHz CPU · Virtuozzo pásma (R: 98.84–79.06 / D: 148.26–133.44 Kč/cl/měs, ×${fmt1(paasCommitRatio(paasCommitment))})`], 'note')
-  pushRow([`Utilizace ${Math.round(utilization * 100)} % · Dynamické cloudlety = ceil(celkem × utilizace)`], 'note')
+  pushRow([`Závazek (PaaS): ${commitLabel(paasCommitment)} · Cloudlet: ${paasCloudRamMiB} MiB RAM + ${paasCloudCpuMHz} MHz CPU · Virtuozzo pásma (R: 98.84–79.06 / D: 148.26–133.44 Kč/cl/měs, ×${fmt1(paasCommitRatio(paasCommitment))}) · Rezervace: 15 % cloudletů (vždy placené) `], 'note')
+  pushRow([`Utilizace ${Math.round(utilization * 100)} % · Rezervované: 15 % celkových · Dynamické: ceil(celkem × utilizace) − rezervované`], 'note')
   const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
-  const paasDynCl = Math.ceil(paasTotalCl * utilization)
+  const paasSplitXl = paasSplitCl(paasTotalCl, utilization)
+  const paasResCl = paasSplitXl.reserved
+  const paasDynCl = paasSplitXl.dynamic
   const paasCloudCost = paasCloudletsCost(paasTotalCl, paasCommitment, utilization)
   const paasDiskGB = nodes.reduce((s, n) => s + (Number(n.diskGB) || 0), 0)
   const paasDisk = paasDiskGB * PAAS_DISK_RATE_CZK
@@ -700,7 +710,7 @@ async function exportExcel() {
   const paasIp = hasOp ? PAAS_PUBLIC_IP_RATE_CZK : 0
   pushRow(['CPU', fmt1((t.cpuGHz || 0) * utilization) + ' GHz'], ['lbl', 'val'])
   pushRow(['RAM', fmt1((t.ramGB || 0) * utilization) + ' GiB'], ['lbl', 'val'])
-  pushRow(['Cloudlety rezervované', fmt(paasTotalCl)], ['lbl', 'val'])
+  pushRow(['Cloudlety rezervované (15 %)', fmt(paasResCl)], ['lbl', 'val'])
   pushRow(['Cloudlety dynamické (dle utilizace)', fmt(paasDynCl)], ['lbl', 'val'])
   pushRow(['Cena cloudletů (R + D)', fmtKc(paasCloudCost)], ['lbl', 'val'])
   pushRow(['Cena / cloudlet (průměr)', fmtKc(paasTotalCl > 0 ? paasCloudCost / paasTotalCl : 0)], ['lbl', 'val'])

@@ -116,7 +116,12 @@ Postup výpočtu (server `lib/pricing.js`, klientsky zrcadleno v `public/main.js
   | **Rezervované** Kč/cl/měs | 98.84 | 93.88 | 88.91 | 84.02 | 79.06 |
   | **Dynamické** Kč/cl/měs | 148.26 | 144.54 | 140.82 | 137.09 | 133.44 |
   (Hodinové sazby × 730 h: 0.1354/0.1286/0.1218/0.1151/0.1083 → 98.84/93.88/88.91/84.02/79.06 a 0.2031/0.1980/0.1929/0.1878/0.1828 → 148.26/144.54/140.82/137.09/133.44. Sleva: rezervované 33–47 %, dynamické 0–10 %.)
-- **Výpočet ceny**: `cloudletCost(N) = band(N, reservovanée) + band(ceil(N × utilization), dynamické)`, kde `band(n, sazby)` rozpočítá `n` do pásem (např. N=82: 16×98.84 + 16×93.88 + 32×88.91 + 18×84.02 = **7 441 Kč** rezervované; dynamické 33 = 16×148.26 + 16×144.54 + 1×140.82 = **4 825.62 Kč**; celkem **12 266.62 Kč**).
+- **Výpočet ceny**:
+  - **Rezervované cloudlety R** = vždy placené minimum = `ceil(N × 15 %)` (např. 82 → 13);
+  - **Dynamické cloudlety D** = skutečně využité nad rezervací = `ceil(N × utilizace) − R` (např. 82 @40 % → `33 − 13 = 20`; @100 % → `82 − 13 = 69`);
+  - **Cena cloudletů** = `band(R, rezervované sazby) + band(D, dynamické sazby)`, kde `band(n, sazby)` rozpočítá `n` do pásem;
+  - příklad @40 %: R=13 → 13×98,84 = **1 284,92 Kč**; D=20 → 16×148,26 + 4×144,54 = **2 950,32 Kč**; celkem **4 235,24 Kč**;
+  - příklad @100 %: R=13 → **1 284,92 Kč**; D=69 → 16×148,26 + 16×144,54 + 32×140,82 + 5×137,09 = **9 876,49 Kč**; celkem **11 161,41 Kč** (průměr ~136 Kč/cl, nikoli 2× jako předchozí model).
 - **Využití (utilizace)**: `paasUtil` (default 40 %, env `IaaS_PAAS_UTILIZATION`, UI slider 10–100 %) určuje počet **dynamických** cloudletů `ceil(N × utilization)`; rezervované se platí vždy beze změny. CPU/RAM v sekci se zobrazují na utilizaci (využité kapacity).
 - **Další položky Virtuozzo** (přičítají se k PaaS celkem, neovlivněné utilizací):
   - **Disk PaaS** = Σ diskGB všech VM × **2.40 Kč/GB/měs** (0.003286 Kč/h × 730);
