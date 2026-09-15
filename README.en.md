@@ -49,6 +49,12 @@ Copy from the template: `cp .env.example .env`
 | `IaaS_DISK_RATE_CZK_GB` | price per disk GB/month, Super Fast tier (default commitment) | `3.15` (12m) |
 | `IaaS_PAAS_UTILIZATION` | default utilization for the PaaS section in % (UI slider 10–100; determines the number of dynamic cloudlets) | `40` |
 | `IaaS_PUBLIC_IP_RATE_CZK` | flat monthly "Public IP" fee (only with a firewall/`opnsense`) | `108` |
+| `IaaS_PAAS_RESERVATION_PCT` | reserved cloudlets = always-paid minimum (% of total, PaaS) | `15` |
+| `IaaS_PAAS_RESERVED_RATES` | reserved PaaS cloudlet rates (CZK/cl/month, per band, comma-separated) | `98.84,93.88,88.91,84.02,79.06` |
+| `IaaS_PAAS_DYNAMIC_RATES` | dynamic PaaS cloudlet rates (CZK/cl/month, per band) | `148.26,144.54,140.82,137.09,133.44` |
+| `IaaS_PAAS_BANDS` | band upper limits for cloudlets (the final band auto-extends to ∞) | `16,32,64,128` |
+| `IaaS_PAAS_DISK_RATE_CZK` | PaaS disk rate (CZK/GB/month) | `2.40` |
+| `IaaS_PAAS_PUBLIC_IP_RATE_CZK` | PaaS public IP (CZK/IP/month, firewall only) | `120.01` |
 | `TCLOUD_BASE_URL` | T-Cloud API base | `https://prg1.t-cloud.eu/api/2.0` |
 | `TCLOUD_REFERER` | Referer header | `https://prg1.t-cloud.eu` |
 | `TCLOUD_USERNAME` / `TCLOUD_PASSWORD` / `TCLOUD_OTP_SECRET` | deployment credentials (fallback) | empty |

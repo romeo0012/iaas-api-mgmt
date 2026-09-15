@@ -49,6 +49,12 @@ Kopíruj ze šablony: `cp .env.example .env`
 | `IaaS_DISK_RATE_CZK_GB` | cena za disk GB/měsíc, Super Fast tier (defaultní závazek) | `3.15` (12m) |
 | `IaaS_PAAS_UTILIZATION` | default využití pro PaaS sekci v % (UI slider 10–100; určuje počet dynamických cloudletů) | `40` |
 | `IaaS_PUBLIC_IP_RATE_CZK` | fixní měsíční poplatek „Public IP" (jen s firewallem/`opnsense`) | `108` |
+| `IaaS_PAAS_RESERVATION_PCT` | rezervované cloudlety = vždy placené minimum (% z celku, PaaS) | `15` |
+| `IaaS_PAAS_RESERVED_RATES` | rezervované sazby PaaS cloudletů (Kč/cl/měs, po pásmech, oddělené čárkou) | `98.84,93.88,88.91,84.02,79.06` |
+| `IaaS_PAAS_DYNAMIC_RATES` | dynamické sazby PaaS cloudletů (Kč/cl/měs, po pásmech) | `148.26,144.54,140.82,137.09,133.44` |
+| `IaaS_PAAS_BANDS` | horní hranice pásem cloudletů (poslední pásmo se automaticky doplní na ∞) | `16,32,64,128` |
+| `IaaS_PAAS_DISK_RATE_CZK` | PaaS cena disku (Kč/GB/měs) | `2.40` |
+| `IaaS_PAAS_PUBLIC_IP_RATE_CZK` | PaaS Public IP (Kč/IP/měs, jen s firewallem) | `120.01` |
 | `TCLOUD_BASE_URL` | T-Cloud API base | `https://prg1.t-cloud.eu/api/2.0` |
 | `TCLOUD_REFERER` | Referer hlavička | `https://prg1.t-cloud.eu` |
 | `TCLOUD_USERNAME` / `TCLOUD_PASSWORD` / `TCLOUD_OTP_SECRET` | přihlašovací údaje pro nasazení (fallback) | prázdné |

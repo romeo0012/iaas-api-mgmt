@@ -19,13 +19,24 @@ let paasUtil = (typeof window.PAAS_UTILIZATION === 'number' && window.PAAS_UTILI
   ? Math.min(window.PAAS_UTILIZATION, 100) : 40
 let paasCloudRamMiB = 128
 let paasCloudCpuMHz = 400
-// Virtuozzo (PaaS) ceník — objemová pásma cloudletů (měsíčně = hodinová × 730 h)
-const PAAS_RESERVED_RATES = [98.84, 93.88, 88.91, 84.02, 79.06] // 1–16, 17–32, 33–64, 65–128, 129+
-const PAAS_DYNAMIC_RATES = [148.26, 144.54, 140.82, 137.09, 133.44] // 1–16, 17–32, 33–64, 65–128, 129+
-const PAAS_BANDS = [16, 32, 64, 128, Infinity]
-const PAAS_RESERVATION_PCT = 15 // rezervované cloudlety = vždy placené minimum (15 % z celku)
-const PAAS_DISK_RATE_CZK = 2.40 // cena / GB / měsíc (0.003286 Kč/h × 730)
-const PAAS_PUBLIC_IP_RATE_CZK = 120.01 // cena / IP / měsíc (0.1644 Kč/h × 730)
+// Virtuozzo (PaaS) ceník — objemová pásma cloudletů (měsíčně = hodinová × 730 h);
+// přepsatelné z .env přes window.PAAS_CONFIG (server injektuje po restartu).
+let PAAS_RESERVED_RATES = [98.84, 93.88, 88.91, 84.02, 79.06] // 1–16, 17–32, 33–64, 65–128, 129+
+let PAAS_DYNAMIC_RATES = [148.26, 144.54, 140.82, 137.09, 133.44] // 1–16, 17–32, 33–64, 65–128, 129+
+let PAAS_BANDS = [16, 32, 64, 128, Infinity]
+let PAAS_RESERVATION_PCT = 15 // rezervované cloudlety = vždy placené minimum (15 % z celku)
+let PAAS_DISK_RATE_CZK = 2.40 // cena / GB / měsíc (0.003286 Kč/h × 730)
+let PAAS_PUBLIC_IP_RATE_CZK = 120.01 // cena / IP / měsíc (0.1644 Kč/h × 730)
+const _pc = window.PAAS_CONFIG
+if (_pc && _pc.utilizationPct >= 10) paasUtil = Math.min(_pc.utilizationPct, 100)
+if (_pc) {
+  if (Array.isArray(_pc.reservedRates) && _pc.reservedRates.length) PAAS_RESERVED_RATES = _pc.reservedRates
+  if (Array.isArray(_pc.dynamicRates) && _pc.dynamicRates.length) PAAS_DYNAMIC_RATES = _pc.dynamicRates
+  if (Array.isArray(_pc.bands) && _pc.bands.length) PAAS_BANDS = _pc.bands.concat(Infinity)
+  if (_pc.reservationPct > 0) PAAS_RESERVATION_PCT = _pc.reservationPct
+  if (_pc.diskRateCzk > 0) PAAS_DISK_RATE_CZK = _pc.diskRateCzk
+  if (_pc.publicIpRateCzk > 0) PAAS_PUBLIC_IP_RATE_CZK = _pc.publicIpRateCzk
+}
 let paasCommitment = 12
 let paasCommitCpuRates = {}
 let editingId = null
