@@ -17,6 +17,8 @@ IaaS_PAAS_UTILIZATION=40
 
 # Business Cloud IaaS: fixny mesacny poplatok za siet + firewall (Kc/mesiac)
 IaaS_NETWORK_FW_RATE_CZK=108
+# Business Cloud IaaS: fixny mesacny poplatok za public IP (Kc/IP/mesiac, len s firewallem/opnsense)
+IaaS_PUBLIC_IP_RATE_CZK=108
 
 # T-Cloud (prg1.t-cloud.eu) - deployment do IaaS
 TCLOUD_BASE_URL=https://prg1.t-cloud.eu/api/2.0
