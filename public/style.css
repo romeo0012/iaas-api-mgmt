@@ -271,6 +271,8 @@ body {
 .cost-summary .cost-item:not(.cost-total) > span:last-child { color: #6b4fc0; }
 
 .cost-rate-note { font-size: 12px; color: #666; margin-bottom: 10px; }
+.cost-summary-extras { display: flex; flex-wrap: wrap; gap: 8px; margin: -8px 0 12px; }
+.cost-summary-extras span { font-size: 12px; color: #556; background: #f3f0fb; border: 1px solid #e6e0f5; border-radius: 999px; padding: 3px 10px; }
 
 .cost-paas {
   margin-top: 12px;

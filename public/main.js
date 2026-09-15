@@ -229,9 +229,14 @@ function renderCosting(costing) {
     .map(t => `${t.label} ${fmt((t.rates && t.rates[costing.commitmentMonths]) || 0)}`)
     .join(' · ')
   $('rateNote').textContent =
-    `CPU: ${fmt(costing.rateCpuGHz)} Kč/GHz · RAM: ${fmt(costing.rateRamGB)} Kč/GB · Disk (Kč/GB): ${tierLine} · závazek: ${costing.commitmentLabel || (costing.commitmentMonths + ' měs.')}` +
-    (costing.networkingFwCZK ? ` · Networking + FW: ${fmt(costing.networkingFwCZK)} Kč` : '') +
-    (costing.publicIpCZK ? ` · Public IP: ${fmt(costing.publicIpCZK)} Kč` : '')
+    `CPU: ${fmt(costing.rateCpuGHz)} Kč/GHz · RAM: ${fmt(costing.rateRamGB)} Kč/GB · Disk (Kč/GB): ${tierLine} · závazek: ${costing.commitmentLabel || (costing.commitmentMonths + ' měs.')}`
+  const exEl = $('iaasExtras')
+  if (exEl) {
+    const chips = []
+    if (costing.networkingFwCZK) chips.push(`Networking + FW: ${fmt(costing.networkingFwCZK)} Kč`)
+    if (costing.publicIpCZK) chips.push(`Public IP: ${fmt(costing.publicIpCZK)} Kč`)
+    exEl.innerHTML = chips.map(c => `<span>${esc(c)}</span>`).join('')
+  }
 
   const groupMap = {}
   for (const n of costing.perNode) {
