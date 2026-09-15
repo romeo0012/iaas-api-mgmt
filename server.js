@@ -62,7 +62,8 @@ function p(route) { return BASE_PATH + route }
 function costOf(arch, commitmentMonths) {
   const computed = architecture.compute(arch)
   const cm = pricing.COMMITMENTS.includes(commitmentMonths) ? commitmentMonths : pricing.defaultCommitment()
-  return { arch, computed, costing: pricing.summarize(computed.nodes, cm) }
+  const rb = (arch && arch.remoteBackupGB != null) ? arch.remoteBackupGB : null
+  return { arch: computed, computed, costing: pricing.summarize(computed.nodes, cm, rb) }
 }
 
 app.get(p('/api/architecture'), (_req, res) => {

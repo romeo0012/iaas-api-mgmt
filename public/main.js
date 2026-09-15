@@ -14,7 +14,7 @@ function groupVlanName(key) { const g = groupMeta(key); return (g.vlanName || g.
 const TIER_LABELS = { superfast: 'Super Fast', fast: 'Fast', standard: 'Standard', basic: 'Basic' }
 function tierLabel(t) { return TIER_LABELS[t] || 'Super Fast' }
 
-let state = { nodes: [], vlans: {}, groups: {}, wanIp: '', commitment: 12, envName: '' }
+let state = { nodes: [], vlans: {}, groups: {}, wanIp: '', commitment: 12, envName: '', remoteBackupGB: null }
 let paasUtil = (typeof window.PAAS_UTILIZATION === 'number' && window.PAAS_UTILIZATION >= 10)
   ? Math.min(window.PAAS_UTILIZATION, 100) : 40
 let paasCloudRamMiB = 128
@@ -249,6 +249,10 @@ function renderCosting(costing) {
   if (ipItem) ipItem.hidden = !(costing.publicIpCZK || 0)
   const rbEl = $('totRbIaaS')
   if (rbEl) rbEl.textContent = fmt(costing.remoteBackupCZK || 0) + ' Kč'
+  const rbCap = $('rbCapacity')
+  if (rbCap && String(rbCap.value) !== String(costing.remoteBackupCapacityGB)) {
+    rbCap.value = costing.remoteBackupAuto ? '' : String(costing.remoteBackupCapacityGB || 0)
+  }
 
   const groupMap = {}
   for (const n of costing.perNode) {
@@ -288,7 +292,7 @@ function renderCosting(costing) {
 }
 
 function recalc() {
-  socket.emit('recalc', { nodes: state.nodes.map(strip), vlans: state.vlans, groups: state.groups, commitmentMonths: state.commitment }, (res) => {
+  socket.emit('recalc', { nodes: state.nodes.map(strip), vlans: state.vlans, groups: state.groups, commitmentMonths: state.commitment, remoteBackupGB: state.remoteBackupGB }, (res) => {
     state.nodes = res.computed.nodes.map((n, i) => {
       const c = (res.costing.perNode && res.costing.perNode[i]) || {}
       return { ...n, idx: String(i), _cost: c.totalFormatted }
@@ -484,6 +488,7 @@ function topologyConfig() {
     groups: state.groups || {},
     vlans: state.vlans || {},
     nodes: state.nodes.map(strip),
+    remoteBackupGB: state.remoteBackupGB,
   }
 }
 
@@ -492,6 +497,8 @@ function applyTopology(cfg) {
   state.commitment = (cfg && cfg.commitment != null) ? cfg.commitment : 12
   state.groups = (cfg && cfg.groups) || {}
   state.vlans = (cfg && cfg.vlans) || {}
+  state.remoteBackupGB = (cfg && cfg.remoteBackupGB != null && Number.isFinite(Number(cfg.remoteBackupGB)))
+    ? Math.max(0, Number(cfg.remoteBackupGB)) : null
   state.nodes = ((cfg && cfg.nodes) || []).map((n, i) => ({ ...n, idx: String(i) }))
   recalc()
 }
@@ -681,7 +688,7 @@ async function exportExcel() {
   pushRow(['RAM', fmt(t.ramGB || 0) + ' GiB'], ['lbl', 'val'])
   pushRow(['Disk', fmt(t.diskGB || 0) + ' GB'], ['lbl', 'val'])
   if (t.publicIpCZK) pushRow(['Public IP', fmtKc(t.publicIpCZK)], ['lbl', 'val'])
-  pushRow(['Remote backup', fmtKc(t.remoteBackupCZK || 0) + ' (0,68 Kč/GB)'], ['lbl', 'val'])
+  pushRow(['Remote backup', fmtKc(t.remoteBackupCZK || 0) + ' (2 × ' + fmt(t.diskGB || 0) + ' GB × 0,68)'], ['lbl', 'val'])
   pushRow(['Cena (IaaS)', t.totalFormatted || '0 Kč'], ['lbl', 'total'])
   pushRow([], 'blank')
 
@@ -1011,6 +1018,11 @@ $('copyLogBtn').onclick = () => {
 
 function loadArch(data) {
   if (data.arch && data.arch.envName) state.envName = data.arch.envName
+  if (data.arch && data.arch.remoteBackupGB != null && Number.isFinite(Number(data.arch.remoteBackupGB))) {
+    state.remoteBackupGB = Math.max(0, Number(data.arch.remoteBackupGB))
+  } else {
+    state.remoteBackupGB = null
+  }
   state.nodes = data.computed.nodes.map((n, i) => {
     const c = (data.costing.perNode && data.costing.perNode[i]) || {}
     return { ...n, idx: String(i), _cost: c.totalFormatted }
@@ -1102,6 +1114,13 @@ if (commitSel) commitSel.onchange = () => {
   if (!Number.isFinite(state.commitment)) state.commitment = 12
   recalc()
 }
+
+const rbCap = $('rbCapacity')
+if (rbCap) rbCap.addEventListener('change', () => {
+  const raw = rbCap.value.trim()
+  state.remoteBackupGB = raw === '' ? null : Math.max(0, Number(raw) || 0)
+  recalc()
+})
 
 const paasCommitSel = $('paasCommitSel')
 if (paasCommitSel) paasCommitSel.onchange = () => {
