@@ -134,7 +134,7 @@ An informational section in the UI — **does not affect the IaaS price**. It mo
 
 ### 3. Excel export (.xlsx)
 
-Clicking "Export Excel" mirrors the web content exactly (`exportExcel` in `public/main.js`): both costings (IaaS + PaaS with utilization), disk by tier, price by group, rates, and the VM table (columns `VM, Group, CPU GHz, RAM GiB, Disk GB, Tier, CPU, RAM, Disk, Price IaaS, Cloudlets, Price PaaS`). The PaaS summary rows follow the same order as the web (CPU → RAM → Reserved cloudlets → Dynamic cloudlets → Cloudlet price → Price / cloudlet → PaaS disk → Public IP → Total PaaS price). A **topology screenshot** (html2canvas + JSZip) is embedded at the top when available; rows are shifted so the image does not cover the text. The VM table's "Cloudlets" column shows each VM's reserved cloudlet count.
+Clicking "Export Excel" mirrors the web content exactly (`exportExcel` in `public/main.js`): both costings (IaaS + PaaS with utilization), disk by tier, price by group, rates, and the VM table (columns `VM, Group, CPU GHz, RAM GiB, Disk GB, Tier, CPU, RAM, Disk, Price IaaS, Cloudlets, Price PaaS`). The PaaS summary rows follow the same order as the web (CPU → RAM → Reserved cloudlets → Dynamic cloudlets → Cloudlet price → Price / cloudlet → PaaS disk → Public IP → Total PaaS price). A **topology screenshot** (html2canvas + JSZip) is embedded at the top when available; rows are shifted so the image does not cover the text. The VM table's "Cloudlets" column shows cloudlets **per utilization** (`round(cl × utilization)`), not the maximum.
 
 ### 4. Topology
 

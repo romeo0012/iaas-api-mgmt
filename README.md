@@ -134,7 +134,7 @@ Postup výpočtu (server `lib/pricing.js`, klientsky zrcadleno v `public/main.js
 
 ### 3. Export Excel (.xlsx)
 
-Kliknutí „Export Excel" zrcadlí přesně web obsah (`exportExcel` v `public/main.js`): oba costingy (IaaS + PaaS s utilizací), disk podle tieru, cenu podle skupiny, sazby, tabulku VM (sloupce `VM, Skupina, CPU GHz, RAM GiB, Disk GB, Tier, CPU, RAM, Disk, Cena IaaS, Cloudlety, Cena PaaS`). PaaS souhrn má řádky ve stejném pořadí jako web (CPU → RAM → Cloudlety rezervované → Cloudlety dynamické → Cena cloudletů → Cena / cloudlet → Disk PaaS → Public IP → Cena PaaS celkem). Nahoře se vloží **obrázek topologie** (html2canvas + JSZip), pokud je k dispozici; řádky se posunou tak, aby obrázek nepřekrýval text. Sloupec „Cloudlety" v tabulce VM zobrazuje rezervovaný počet cloudletů daného VM.
+Kliknutí „Export Excel" zrcadlí přesně web obsah (`exportExcel` v `public/main.js`): oba costingy (IaaS + PaaS s utilizací), disk podle tieru, cenu podle skupiny, sazby, tabulku VM (sloupce `VM, Skupina, CPU GHz, RAM GiB, Disk GB, Tier, CPU, RAM, Disk, Cena IaaS, Cloudlety, Cena PaaS`). PaaS souhrn má řádky ve stejném pořadí jako web (CPU → RAM → Cloudlety rezervované → Cloudlety dynamické → Cena cloudletů → Cena / cloudlet → Disk PaaS → Public IP → Cena PaaS celkem). Nahoře se vloží **obrázek topologie** (html2canvas + JSZip), pokud je k dispozici; řádky se posunou tak, aby obrázek nepřekrýval text. Sloupec „Cloudlety" v tabulce VM zobrazuje počet cloudletů **dle utilizace** (`round(cl × utilization)`), nikoli maximální.
 
 ### 4. Topologie
 

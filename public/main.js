@@ -262,7 +262,7 @@ function renderCosting(costing) {
       <td>${fmt(n.ramCostCZK)} Kč</td>
       <td>${fmt(n.diskCostCZK)} Kč</td>
       <td class="iaas-total">${n.totalFormatted}</td>
-      <td>${fmt(Math.round(cl))}</td>
+      <td>${fmt(Math.round(cl * utilPct))}</td>
       <td>${fmt(Math.round(cl * paasEffRate))} Kč</td>
     </tr>`
   }).join('')
@@ -727,7 +727,7 @@ async function exportExcel() {
     const cl = paasCloudletsOf(n.cpuGHz, n.ramGB)
     pushRow([n.name, groupLabel(n.group), n.cpuGHz, n.ramGB, n.diskGB, n.diskTierLabel,
       fmtKc(n.cpuCostCZK), fmtKc(n.ramCostCZK), fmtKc(n.diskCostCZK), n.totalFormatted,
-      fmt(cl), fmtKc(cl * expEffRate)],
+      fmt(Math.round(cl * utilization)), fmtKc(cl * expEffRate)],
       { base: 'tcell', cells: { 9: 'tcellBold', 11: 'tcellBold' } })
   }
 
