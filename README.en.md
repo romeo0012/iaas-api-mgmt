@@ -48,7 +48,6 @@ Copy from the template: `cp .env.example .env`
 | `IaaS_RAM_RATE_CZK_GB` | price per RAM GB/month (default commitment) | `47.30` (12m) |
 | `IaaS_DISK_RATE_CZK_GB` | price per disk GB/month, Super Fast tier (default commitment) | `3.15` (12m) |
 | `IaaS_PAAS_UTILIZATION` | default utilization for the PaaS section in % (UI slider 10–100; determines the number of dynamic cloudlets) | `40` |
-| `IaaS_NETWORK_FW_RATE_CZK` | flat monthly "Networking and FW" fee (all commitments) | `108` |
 | `IaaS_PUBLIC_IP_RATE_CZK` | flat monthly "Public IP" fee (only with a firewall/`opnsense`) | `108` |
 | `TCLOUD_BASE_URL` | T-Cloud API base | `https://prg1.t-cloud.eu/api/2.0` |
 | `TCLOUD_REFERER` | Referer header | `https://prg1.t-cloud.eu` |
@@ -70,7 +69,6 @@ Unit rates come from the official calculator https://t-business.cz/cs/kalkulator
 | Disk Fast 5000 (GB) | 2.60 | 1.80 | 1.70 | 1.60 |
 | Disk Standard 3000 (GB) | 1.95 | 1.35 | 1.28 | 1.20 |
 | Disk Basic 600 (GB) | 1.30 | 0.90 | 0.85 | 0.80 |
-| Networking and FW (flat/monthly) | 108 | 108 | 108 | 108 |
 | Public IP (flat/monthly, firewall only) | 108 | 108 | 108 | 108 |
 
 ## Costing — Calculation logic
@@ -83,7 +81,6 @@ Business Cloud IaaS is billed as a **Resource Pool** across the whole architectu
 total (IaaS) = ceil(Σ CPU GHz) × cpuRate
              + Σ RAM GB × ramRate
              + Σ disk GB × rate (per each VM's tier)
-             + "Networking and FW"                 (flat, 108 CZK, all commitments)
              + "Public IP"                           (108 CZK, only with a firewall / opnsense group)
 ```
 

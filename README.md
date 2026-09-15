@@ -48,7 +48,6 @@ Kopíruj ze šablony: `cp .env.example .env`
 | `IaaS_RAM_RATE_CZK_GB` | cena za RAM GB/měsíc (defaultní závazek) | `47.30` (12m) |
 | `IaaS_DISK_RATE_CZK_GB` | cena za disk GB/měsíc, Super Fast tier (defaultní závazek) | `3.15` (12m) |
 | `IaaS_PAAS_UTILIZATION` | default využití pro PaaS sekci v % (UI slider 10–100; určuje počet dynamických cloudletů) | `40` |
-| `IaaS_NETWORK_FW_RATE_CZK` | fixní měsíční poplatek „Networking a FW" (všechny závazky) | `108` |
 | `IaaS_PUBLIC_IP_RATE_CZK` | fixní měsíční poplatek „Public IP" (jen s firewallem/`opnsense`) | `108` |
 | `TCLOUD_BASE_URL` | T-Cloud API base | `https://prg1.t-cloud.eu/api/2.0` |
 | `TCLOUD_REFERER` | Referer hlavička | `https://prg1.t-cloud.eu` |
@@ -70,7 +69,6 @@ Jednotkové sazby pocházejí z oficiální kalkulačky https://t-business.cz/cs
 | Disk Fast 5000 (GB) | 2.60 | 1.80 | 1.70 | 1.60 |
 | Disk Standard 3000 (GB) | 1.95 | 1.35 | 1.28 | 1.20 |
 | Disk Basic 600 (GB) | 1.30 | 0.90 | 0.85 | 0.80 |
-| Networking a FW (fix měsíčně) | 108 | 108 | 108 | 108 |
 | Public IP (fix měsíčně, jen s firewallem) | 108 | 108 | 108 | 108 |
 
 ## Costing — Logika výpočtu
@@ -83,7 +81,6 @@ Business Cloud IaaS je účtovaný jako **Resource Pool** přes celou architektu
 celkem (IaaS) = ceil(Σ CPU GHz) × sazbaCPU
               + Σ RAM GB × sazbaRAM
               + Σ disk GB × sazba (dle tieru každého VM)
-              + "Networking a FW"                  (fixní, 108 Kč, všechny závazky)
               + "Public IP"                        (108 Kč, jen pokud je firewall / skupina opnsense)
 ```
 
