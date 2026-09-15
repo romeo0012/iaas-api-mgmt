@@ -105,8 +105,13 @@ Calculation steps (server `lib/pricing.js`, mirrored client-side in `public/main
 
 An informational section in the UI — **does not affect the IaaS price**. It models Jelastic/Virtuozzo cloudlets:
 
-- **Cloudlet** = 128 MiB RAM (0.125 GiB) + 400 MHz CPU (0.4 GHz) — both adjustable in the UI (PaaS parameters).
-- **Cloudlets per VM** = `ceil(max(cpuGHz / 0.4, ramGB / 0.125))` (independent of disk).
+- **Cloudlet** = 128 MiB RAM (0.125 GiB) + 400 MHz CPU (0.4 GHz) — **both adjustable** in the UI (PaaS parameters, "Cloudlet RAM" / "Cloudlet CPU" fields).
+- **Cloudlets per VM** = `ceil(max(cpuGHz / (clCpuMHz/1000), ramGB / (clRamMiB/1024)))` (independent of disk), where `clCpuMHz` and `clRamMiB` are the cloudlet parameters (default 400 / 128).
+- **What changing the RAM/CPU ratio in a cloudlet does**: the cloudlet size only "sees" CPU and RAM, so changing the cloudlet parameters changes **the number of cloudlets of every VM** (and thus the total `N`):
+  - increasing a cloudlet's RAM or CPU → the cloudlet covers more of the VM's resources → fewer cloudlets (and vice versa);
+  - the new `N` is used to recompute the **tiered price** `cloudletCost(N)` (band 1–10 vs 11+), the commitment ratio, the effective average rate and the utilization (the PaaS price in the section = `N` × rate × utilization);
+  - the **price per cloudlet in CZK does not change** (152.50 / 133.80 CZK stays) — the parameter only changes *how many* cloudlets are counted; the IaaS price is unaffected by PaaS parameter changes (the section is informational);
+  - example: VM 7.2 GHz / 2.25 GiB → default (400 MHz + 128 MiB): `ceil(max(7.2/0.4, 2.25/0.125))` = `ceil(max(18, 18))` = **18 cloudlets**; reducing the cloudlet CPU to 200 MHz → `ceil(max(36, 18))` = **36 cloudlets** (double).
 - **Total** = sum across all VMs.
 - **Tiered (volume) price** depending on the total cloudlet count per month:
   ```

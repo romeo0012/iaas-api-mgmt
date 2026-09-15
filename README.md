@@ -105,8 +105,13 @@ Postup výpočtu (server `lib/pricing.js`, klientsky zrcadleno v `public/main.js
 
 Čistě informativní sekce v UI — **neovlivňuje cenu IaaS**. Modeluje Jelastic/Virtuozzo cloudlety:
 
-- **Cloudlet** = 128 MiB RAM (0.125 GiB) + 400 MHz CPU (0.4 GHz) — oboží nastavitelné v UI (PaaS parametry).
-- **Cloudlety per VM** = `ceil(max(cpuGHz / 0.4, ramGB / 0.125))` (nezávislé na disku).
+- **Cloudlet** = 128 MiB RAM (0.125 GiB) + 400 MHz CPU (0.4 GHz) — **obojí nastavitelné** v UI (PaaS parametry, pole „RAM cloudletu" / „CPU cloudletu").
+- **Cloudlety per VM** = `ceil(max(cpuGHz / (clCpuMHz/1000), ramGB / (clRamMiB/1024)))` (nezávislé na disku), kde `clCpuMHz` a `clRamMiB` jsou parametry cloudletu (default 400 / 128).
+- **Co dělá změna poměru RAM/CPU v cloudletu**: velikost cloudletu „vidí" jen CPU a RAM, proto změna parametru cloudletu mění **počet cloudletů každého VM** (a tím i celkový počet `N`):
+  - zvětšíš-li RAM nebo CPU cloudletu → cloudlet pokryje víc zdrojů VM → klesne počet cloudletů (a naopak);
+  - z nového `N` se přepočítá **vrstvená cena** `cloudletCost(N)` (pásmo 1–10 vs 11+), poměr závazku, efektivní průměrná sazba i utilizace (cena PaaS v sekci = `N` × sazba × utilization);
+  - **cena za cloudlet v Kč se nemění** (152.50 / 133.80 Kč zůstává) — parametr mění jen *kolik* cloudletů se spočte; IaaS cena se zmnou PaaS parametrů nijak nemění (sekce je informativní);
+  - příklad: VM 7.2 GHz / 2.25 GiB → default (400 MHz + 128 MiB): `ceil(max(7.2/0.4, 2.25/0.125))` = `ceil(max(18, 18))` = **18 cloudletů**; zmenšíš-li CPU cloudletu na 200 MHz → `ceil(max(36, 18))` = **36 cloudletů** (dvojnásobek).
 - **Celkem** = součet přes všechny VM.
 - **Vrstvená (objemová) cena** dle celkového počtu cloudletů měsíčně:
   ```
