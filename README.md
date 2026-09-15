@@ -48,6 +48,7 @@ Kopíruj ze šablony: `cp .env.example .env`
 | `IaaS_RAM_RATE_CZK_GB` | cena za RAM GB/měsíc (defaultní závazek) | `47.30` (12m) |
 | `IaaS_DISK_RATE_CZK_GB` | cena za disk GB/měsíc, Super Fast tier (defaultní závazek) | `3.15` (12m) |
 | `IaaS_PAAS_UTILIZATION` | default využití pro PaaS sekci v % (UI slider 10–100; určuje počet dynamických cloudletů) | `40` |
+| `IaaS_REMOTE_BACKUP_RATE_CZK` | cena Remote backup (Kč/GB/měsíc, × celkový disk) | `0,68` |
 | `IaaS_PUBLIC_IP_RATE_CZK` | fixní měsíční poplatek „Public IP" (jen s firewallem/`opnsense`) | `108` |
 | `IaaS_PAAS_RESERVATION_PCT` | rezervované cloudlety = vždy placené minimum (% z celku, PaaS) | `15` |
 | `IaaS_PAAS_RESERVED_RATES` | rezervované sazby PaaS cloudletů (Kč/cl/měs, po pásmech, oddělené čárkou) | `98.84,93.88,88.91,84.02,79.06` |
@@ -87,6 +88,7 @@ Business Cloud IaaS je účtovaný jako **Resource Pool** přes celou architektu
 celkem (IaaS) = ceil(Σ CPU GHz) × sazbaCPU
               + Σ RAM GB × sazbaRAM
               + Σ disk GB × sazba (dle tieru každého VM)
+              + Σ disk GB × 0,68 Kč          (Remote backup, za každý GB celkového disku)
               + "Public IP"                        (108 Kč, jen pokud je firewall / skupina opnsense)
 ```
 
@@ -103,6 +105,7 @@ Postup výpočtu (server `lib/pricing.js`, klientsky zrcadleno v `public/main.js
    - `diskCostCZK (celkem) = Σ per-node diskCost` (= Σ výkonnostní tiery + celkový disk na Basic sazbě).
 3. **Disk podle tieru** (`diskByTier`): pro tierdeklarace Super Fast / Fast / Standard se sečtou GB všech VM daného tieru × sazba tieru; navíc vždy přibude řádek **`Basic (základ)`** = **celkový disk všech VM** × sazba Basic.
 4. **Cena podle skupiny**: součet per-node `totalCZK` + počet VM v každé skupině.
+5. **Remote backup**: `celkový disk × 0,68 Kč` (nebo `IaaS_REMOTE_BACKUP_RATE_CZK` z `.env`). Připočítává se k celkové ceně a zobrazuje se v IaaS panelu i v Excelu.
 5. Formátování: `formatCZK` zaokrouhlí na celé Kč a oddělí mezery po tisících (`1 158 Kč`).
 
 ### 2. PaaS (cloudlety — informativní srovnání)

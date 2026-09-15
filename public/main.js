@@ -247,6 +247,8 @@ function renderCosting(costing) {
   if (iaasIpEl) iaasIpEl.textContent = fmt(costing.publicIpCZK || 0) + ' Kč'
   const ipItem = $('ipIaaSItem')
   if (ipItem) ipItem.hidden = !(costing.publicIpCZK || 0)
+  const rbEl = $('totRbIaaS')
+  if (rbEl) rbEl.textContent = fmt(costing.remoteBackupCZK || 0) + ' Kč'
 
   const groupMap = {}
   for (const n of costing.perNode) {
@@ -679,6 +681,7 @@ async function exportExcel() {
   pushRow(['RAM', fmt(t.ramGB || 0) + ' GiB'], ['lbl', 'val'])
   pushRow(['Disk', fmt(t.diskGB || 0) + ' GB'], ['lbl', 'val'])
   if (t.publicIpCZK) pushRow(['Public IP', fmtKc(t.publicIpCZK)], ['lbl', 'val'])
+  pushRow(['Remote backup', fmtKc(t.remoteBackupCZK || 0) + ' (0,68 Kč/GB)'], ['lbl', 'val'])
   pushRow(['Cena (IaaS)', t.totalFormatted || '0 Kč'], ['lbl', 'total'])
   pushRow([], 'blank')
 

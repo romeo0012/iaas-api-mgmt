@@ -48,6 +48,7 @@ Copy from the template: `cp .env.example .env`
 | `IaaS_RAM_RATE_CZK_GB` | price per RAM GB/month (default commitment) | `47.30` (12m) |
 | `IaaS_DISK_RATE_CZK_GB` | price per disk GB/month, Super Fast tier (default commitment) | `3.15` (12m) |
 | `IaaS_PAAS_UTILIZATION` | default utilization for the PaaS section in % (UI slider 10–100; determines the number of dynamic cloudlets) | `40` |
+| `IaaS_REMOTE_BACKUP_RATE_CZK` | Remote backup rate (CZK/GB/month, multiplied by total disk) | `0.68` |
 | `IaaS_PUBLIC_IP_RATE_CZK` | flat monthly "Public IP" fee (only with a firewall/`opnsense`) | `108` |
 | `IaaS_PAAS_RESERVATION_PCT` | reserved cloudlets = always-paid minimum (% of total, PaaS) | `15` |
 | `IaaS_PAAS_RESERVED_RATES` | reserved PaaS cloudlet rates (CZK/cl/month, per band, comma-separated) | `98.84,93.88,88.91,84.02,79.06` |
@@ -85,6 +86,10 @@ Business Cloud IaaS is billed as a **Resource Pool** across the whole architectu
 
 ```
 total (IaaS) = ceil(Σ CPU GHz) × cpuRate
+            + Σ RAM GB × ramRate
+            + Σ disk GB × tierRate (per-VM tier)
+            + Σ disk GB × 0.68     (Remote backup × total disk)
+            + "Public IP"              (108 Kč, only when a firewall / opnsense group is present)
              + Σ RAM GB × ramRate
              + Σ disk GB × rate (per each VM's tier)
              + "Public IP"                           (108 CZK, only with a firewall / opnsense group)

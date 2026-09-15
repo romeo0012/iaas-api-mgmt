@@ -253,7 +253,7 @@ body {
 .costing h2 { margin-top: 0; font-size: 12px; font-weight: 700; color: #7a5bd6; text-transform: uppercase; letter-spacing: 0.3px; }
 .cost-summary {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 8px;
   margin-bottom: 16px;
 }
