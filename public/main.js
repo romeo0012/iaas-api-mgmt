@@ -298,8 +298,11 @@ function renderCosting(costing) {
 function recalc() {
   socket.emit('recalc', { nodes: state.nodes.map(strip), vlans: state.vlans, groups: state.groups, commitmentMonths: state.commitment, remoteBackupGB: state.remoteBackupGB }, (res) => {
     state.nodes = res.computed.nodes.map((n, i) => {
+      const prev = state.nodes.find(p => p.idx === String(i))
       const c = (res.costing.perNode && res.costing.perNode[i]) || {}
-      return { ...n, idx: String(i), _cost: c.totalFormatted }
+      // Defensive: preserve excludeIaaS if a stale server dropped the field.
+      const ex = (prev && prev.excludeIaaS === true && n.excludeIaaS === undefined) || n.excludeIaaS === true
+      return { ...n, idx: String(i), _cost: c.totalFormatted, excludeIaaS: ex }
     })
     state.vlans = res.computed.vlans || state.vlans
     state.groups = res.computed.groups || state.groups
