@@ -172,7 +172,9 @@ function renderCosting(costing) {
   if (commitSel) { state.commitment = costing.commitmentMonths; commitSel.value = String(costing.commitmentMonths) }
   $('totCpu').textContent = fmt(t.cpuGHz) + ' GHz'
   $('totRam').textContent = fmt(t.ramGB) + ' GiB'
-  $('totDisk').textContent = fmt(t.diskGB) + ' GB'
+  const diskElI = $('totDisk')
+  diskElI.textContent = fmt(t.diskCostCZK) + ' Kč'
+  diskElI.title = fmt(t.diskGB) + ' GB disk'
   const baseCloudlets = costing.perNode.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
   const baseRam = t.ramGB
   const baseCpu = t.cpuGHz
