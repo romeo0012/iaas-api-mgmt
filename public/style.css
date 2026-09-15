@@ -253,10 +253,11 @@ body {
 .costing h2 { margin-top: 0; font-size: 12px; font-weight: 700; color: #7a5bd6; text-transform: uppercase; letter-spacing: 0.3px; }
 .cost-summary {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
   margin-bottom: 16px;
 }
+.cost-summary .cost-item[hidden] { display: none; }
 .cost-item {
   border: 1px solid #eef0f3;
   border-radius: 8px;
@@ -271,8 +272,6 @@ body {
 .cost-summary .cost-item:not(.cost-total) > span:last-child { color: #6b4fc0; }
 
 .cost-rate-note { font-size: 12px; color: #666; margin-bottom: 10px; }
-.cost-summary-extras { display: flex; flex-wrap: wrap; gap: 8px; margin: -8px 0 12px; }
-.cost-summary-extras span { font-size: 12px; color: #556; background: #f3f0fb; border: 1px solid #e6e0f5; border-radius: 999px; padding: 3px 10px; }
 
 .cost-paas {
   margin-top: 12px;

@@ -230,13 +230,10 @@ function renderCosting(costing) {
     .join(' · ')
   $('rateNote').textContent =
     `CPU: ${fmt(costing.rateCpuGHz)} Kč/GHz · RAM: ${fmt(costing.rateRamGB)} Kč/GB · Disk (Kč/GB): ${tierLine} · závazek: ${costing.commitmentLabel || (costing.commitmentMonths + ' měs.')}`
-  const exEl = $('iaasExtras')
-  if (exEl) {
-    const chips = []
-    if (costing.networkingFwCZK) chips.push(`Networking + FW: ${fmt(costing.networkingFwCZK)} Kč`)
-    if (costing.publicIpCZK) chips.push(`Public IP: ${fmt(costing.publicIpCZK)} Kč`)
-    exEl.innerHTML = chips.map(c => `<span>${esc(c)}</span>`).join('')
-  }
+  const iaasIpEl = $('totIpIaaS')
+  if (iaasIpEl) iaasIpEl.textContent = fmt(costing.publicIpCZK || 0) + ' Kč'
+  const ipItem = $('ipIaaSItem')
+  if (ipItem) ipItem.hidden = !(costing.publicIpCZK || 0)
 
   const groupMap = {}
   for (const n of costing.perNode) {
@@ -668,7 +665,6 @@ async function exportExcel() {
   pushRow(['CPU', fmt(t.cpuGHz || 0) + ' GHz'], ['lbl', 'val'])
   pushRow(['RAM', fmt(t.ramGB || 0) + ' GiB'], ['lbl', 'val'])
   pushRow(['Disk', fmt(t.diskGB || 0) + ' GB'], ['lbl', 'val'])
-  if (t.networkingFwCZK) pushRow(['Networking + FW', fmtKc(t.networkingFwCZK)], ['lbl', 'val'])
   if (t.publicIpCZK) pushRow(['Public IP', fmtKc(t.publicIpCZK)], ['lbl', 'val'])
   pushRow(['Cena (IaaS)', t.totalFormatted || '0 Kč'], ['lbl', 'total'])
   pushRow([], 'blank')
