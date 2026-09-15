@@ -51,6 +51,20 @@ body {
 .vm:hover { transform: translateY(-2px); box-shadow: 0 3px 8px rgba(61,154,209,.35); }
 .vm-firewall { border-color: #d17a3d; background: #fff4ec; }
 .vm-title { font-weight: 700; font-size: 15px; }
+.vm-noiaas, .bat-noiaas {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: #999;
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 6px;
+  vertical-align: middle;
+  text-transform: uppercase;
+}
+.t-row-noiaas td { color: #999; background: #fafafa; }
+.t-noiaas { color: #bbb; font-weight: 400; }
 .vm-sub { font-size: 11px; color: #666; }
 .vm-spec { font-size: 12px; margin-top: 4px; color: #345; }
 .vm-spec b { color: #124; }
@@ -245,6 +259,14 @@ body {
   border: 1px solid #c9ccd1;
   border-radius: 6px;
   font-size: 13px;
+}
+.modal-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 8px;
+  font-size: 13px;
+  cursor: pointer;
 }
 .modal-actions { display: flex; gap: 8px; margin-top: 8px; }
 .modal-actions .btn-danger { margin-left: auto; }

@@ -173,6 +173,9 @@
           <option value="basic">Basic (600 IOPS)</option>
         </select>
       </label>
+      <label class="modal-check" title="Toto VM se nezapočítá do IaaS ceny (CPU/RAM/Disk/Remote backup/Public IP); zůstává v topologii i PaaS přehledu">
+        <input type="checkbox" id="mExcludeIaaS"> <span>Nepočítat v IaaS ceně</span>
+      </label>
       <div class="modal-actions">
         <button class="btn btn-primary" id="mSave">Uložit</button>
         <button class="btn" id="mCancel">Zrušit</button>

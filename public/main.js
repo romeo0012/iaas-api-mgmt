@@ -125,8 +125,10 @@ function removeGroup(key) {
 
 function vmHtml(n) {
   const cls = n.group === 'opnsense' ? 'vm vm-click vm-firewall' : 'vm vm-click'
+  const badge = n.excludeIaaS ? '<span class="vm-noiaas" title="Vyřazeno z IaaS ceny">mimo IaaS</span>' : ''
   return `
     <div class="${esc(cls)}" data-idx="${esc(n.idx)}" title="Klikni pro úpravu">
+      ${badge}
       <div class="vm-title">${esc(n.name)}</div>
       <div class="vm-sub">${esc(groupLabel(n.group))}</div>
       <div class="vm-spec">CPU <b>${esc(fmt(n.cpuGHz))}</b> GHz · RAM <b>${esc(fmt(n.ramGB))}</b> GiB · Disk <b>${esc(fmt(n.diskGB))}</b> GB · ${esc(tierLabel(n.diskTier))}</div>
@@ -273,18 +275,20 @@ function renderCosting(costing) {
 
   $('costTableBody').innerHTML = costing.perNode.map(n => {
     const cl = paasCloudletsOf(n.cpuGHz, n.ramGB)
+    const ex = n.iaasExcluded
+    const dash = '<span class="t-noiaas">—</span>'
     return `
-    <tr>
-      <td>${esc(n.name)}</td>
+    <tr class="${ex ? 't-row-noiaas' : ''}">
+      <td>${esc(n.name)}${ex ? ' <span class="bat-noiaas">mimo IaaS</span>' : ''}</td>
       <td>${esc(groupLabel(n.group))}</td>
       <td>${fmt(n.cpuGHz)}</td>
       <td>${fmt(n.ramGB)}</td>
       <td>${n.diskGB}</td>
       <td>${esc(n.diskTierLabel)}</td>
-      <td>${fmt(n.cpuCostCZK)} Kč</td>
-      <td>${fmt(n.ramCostCZK)} Kč</td>
-      <td>${fmt(n.diskCostCZK)} Kč</td>
-      <td class="iaas-total">${n.totalFormatted}</td>
+      <td>${ex ? dash : fmt(n.cpuCostCZK) + ' Kč'}</td>
+      <td>${ex ? dash : fmt(n.ramCostCZK) + ' Kč'}</td>
+      <td>${ex ? dash : fmt(n.diskCostCZK) + ' Kč'}</td>
+      <td class="iaas-total">${ex ? dash : n.totalFormatted}</td>
       <td>${fmt(Math.round(cl * utilPct))}</td>
       <td>${fmt(Math.round(cl * paasEffRate))} Kč</td>
     </tr>`
@@ -305,7 +309,7 @@ function recalc() {
 }
 
 function strip(n) {
-  return { group: n.group, name: n.name, label: n.label, cpuGHz: n.cpuGHz, ramGB: n.ramGB, diskGB: n.diskGB, diskTier: n.diskTier }
+  return { group: n.group, name: n.name, label: n.label, cpuGHz: n.cpuGHz, ramGB: n.ramGB, diskGB: n.diskGB, diskTier: n.diskTier, excludeIaaS: n.excludeIaaS === true }
 }
 
 // ---- modal ----
@@ -333,6 +337,7 @@ function openModal(node, isNew) {
     $('mRam').value = node.ramGB
     $('mDisk').value = node.diskGB
     $('mTier').value = node.diskTier || defaultTier
+    $('mExcludeIaaS').checked = node.excludeIaaS === true
     $('modalTitle').textContent = 'Přidat VM'
     $('mDelete').style.display = 'none'
   } else {
@@ -342,6 +347,7 @@ function openModal(node, isNew) {
     $('mRam').value = node.ramGB
     $('mDisk').value = node.diskGB
     $('mTier').value = node.diskTier || defaultTier
+    $('mExcludeIaaS').checked = node.excludeIaaS === true
     $('modalTitle').textContent = 'Upravit VM — ' + node.name
     $('mDelete').style.display = ''
   }
@@ -377,6 +383,7 @@ function readForm() {
     ramGB: parseFloat($('mRam').value) || 0,
     diskGB: parseFloat($('mDisk').value) || 0,
     diskTier: $('mTier').value || 'superfast',
+    excludeIaaS: $('mExcludeIaaS') ? $('mExcludeIaaS').checked : false,
   }
 }
 
@@ -753,8 +760,9 @@ async function exportExcel() {
   const expEffRate = expTotalCl > 0 ? paasCloudletsCost(expTotalCl, paasCommitment, utilization) / expTotalCl : 0
   for (const n of nodes) {
     const cl = paasCloudletsOf(n.cpuGHz, n.ramGB)
-    pushRow([n.name, groupLabel(n.group), n.cpuGHz, n.ramGB, n.diskGB, n.diskTierLabel,
-      fmtKc(n.cpuCostCZK), fmtKc(n.ramCostCZK), fmtKc(n.diskCostCZK), n.totalFormatted,
+    const ex = n.iaasExcluded
+    pushRow([(ex ? '[' + n.name + ' mimo IaaS]' : n.name), groupLabel(n.group), n.cpuGHz, n.ramGB, n.diskGB, n.diskTierLabel,
+      ex ? '—' : fmtKc(n.cpuCostCZK), ex ? '—' : fmtKc(n.ramCostCZK), ex ? '—' : fmtKc(n.diskCostCZK), ex ? '—' : n.totalFormatted,
       fmt(Math.round(cl * utilization)), fmtKc(cl * expEffRate)],
       { base: 'tcell', cells: { 9: 'tcellBold', 11: 'tcellBold' } })
   }
