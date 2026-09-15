@@ -7,10 +7,10 @@ PORT=3000
 # Business Cloud IaaS - "Resource Pool" costing (sucet cez vsetky VM)
 IaaS_COMMITMENT_MONTHS=12
 
-# PaaS: cena za 1 cloudlet (128 MiB RAM + 400 MHz CPU) / mesiac v Kc (informat.- len Cloudlety)
-# Vrstvena cena: prvych 10 cloudletov za IaaS_CLOUDLET_RATE_CZK, od 11. za IaaS_CLOUDLET_RATE_TIER2_CZK
-IaaS_CLOUDLET_RATE_CZK=152.5
-IaaS_CLOUDLET_RATE_TIER2_CZK=133.8
+# PaaS: ceny cloudletov su pevne podla virtuozzo cennika (objemove pasma
+# 1-16/17-32/33-64/65-128/129+: rezervovane 98.84/93.88/88.91/84.02/79.06 a
+# dynamicke 148.26/144.54/140.82/137.09/133.44 Kc/cl/mes = hodinova x 730 h;
+# disk 2.40 Kc/GB/mes, public IP 120.01 Kc/IP/mes). Pouze informat.
 
 # PaaS Costing / mesiac: vychodzia utilizacia v % (range UI je 10-100)
 IaaS_PAAS_UTILIZATION=40

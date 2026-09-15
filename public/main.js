@@ -19,11 +19,12 @@ let paasUtil = (typeof window.PAAS_UTILIZATION === 'number' && window.PAAS_UTILI
   ? Math.min(window.PAAS_UTILIZATION, 100) : 40
 let paasCloudRamMiB = 128
 let paasCloudCpuMHz = 400
-let paasCloudPriceCzk = (typeof window.PAAS_CLOUDLET_RATE_CZK === 'number' && window.PAAS_CLOUDLET_RATE_CZK > 0)
-  ? window.PAAS_CLOUDLET_RATE_CZK : 152.5
-let paasCloudPriceTier2Czk = (typeof window.PAAS_CLOUDLET_RATE_TIER2_CZK === 'number' && window.PAAS_CLOUDLET_RATE_TIER2_CZK > 0)
-  ? window.PAAS_CLOUDLET_RATE_TIER2_CZK : 133.8
-const PAAS_TIER1_CLOUDLETS = 10
+// Virtuozzo (PaaS) ceník — objemová pásma cloudletů (měsíčně = hodinová × 730 h)
+const PAAS_RESERVED_RATES = [98.84, 93.88, 88.91, 84.02, 79.06] // 1–16, 17–32, 33–64, 65–128, 129+
+const PAAS_DYNAMIC_RATES = [148.26, 144.54, 140.82, 137.09, 133.44] // 1–16, 17–32, 33–64, 65–128, 129+
+const PAAS_BANDS = [16, 32, 64, 128, Infinity]
+const PAAS_DISK_RATE_CZK = 2.40 // cena / GB / měsíc (0.003286 Kč/h × 730)
+const PAAS_PUBLIC_IP_RATE_CZK = 120.01 // cena / IP / měsíc (0.1644 Kč/h × 730)
 let paasCommitment = 12
 let paasCommitCpuRates = {}
 let editingId = null
@@ -133,11 +134,24 @@ function paasCommitRatio(cm) {
   return r / r12
 }
 
-function paasCloudletsCost(totalCl, cm) {
+function paasBandedCost(count, rateArr) {
+  let prev = 0
+  let cost = 0
+  for (let i = 0; i < PAAS_BANDS.length; i++) {
+    if (count <= prev) break
+    const inBand = Math.min(count, PAAS_BANDS[i]) - prev
+    if (inBand > 0) cost += inBand * rateArr[i]
+    prev = PAAS_BANDS[i]
+  }
+  return cost
+}
+
+function paasCloudletsCost(totalCl, cm, util) {
   const ratio = paasCommitRatio(cm)
-  if (totalCl <= PAAS_TIER1_CLOUDLETS) return totalCl * paasCloudPriceCzk * ratio
-  return (PAAS_TIER1_CLOUDLETS * paasCloudPriceCzk +
-    (totalCl - PAAS_TIER1_CLOUDLETS) * paasCloudPriceTier2Czk) * ratio
+  const utilP = util != null ? util : paasUtil / 100
+  const reserved = paasBandedCost(totalCl, PAAS_RESERVED_RATES)
+  const dynamic = paasBandedCost(Math.ceil(totalCl * utilP), PAAS_DYNAMIC_RATES)
+  return (reserved + dynamic) * ratio
 }
 
 function commitLabel(cm) {
@@ -155,23 +169,37 @@ function renderCosting(costing) {
   const baseCloudlets = costing.perNode.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
   const baseRam = t.ramGB
   const baseCpu = t.cpuGHz
-  const baseCost = paasCloudletsCost(baseCloudlets, paasCommitment)
-  const paasEffRate = baseCloudlets > 0 ? baseCost / baseCloudlets : 0
   const utilPct = paasUtil / 100
-  const el = $('totCloudletsUtil')
-  if (el) el.textContent = fmt(Math.round(baseCloudlets * utilPct))
+  const paasReservedCl = baseCloudlets
+  const paasDynamicCl = Math.ceil(baseCloudlets * utilPct)
+  const paasCloudletCost = paasCloudletsCost(baseCloudlets, paasCommitment, utilPct)
+  const paasEffRate = baseCloudlets > 0 ? paasCloudletCost / baseCloudlets : 0
+  const paasDiskCl = Array.isArray(costing.perNode)
+    ? costing.perNode.reduce((s, n) => s + (Number(n.diskGB) || 0), 0)
+    : 0
+  const paasDiskCost = paasDiskCl * PAAS_DISK_RATE_CZK
+  const hasOpn = Array.isArray(costing.perNode) && costing.perNode.some(n => n.group === 'opnsense')
+  const paasIpCost = hasOpn ? PAAS_PUBLIC_IP_RATE_CZK : 0
+  const paasGrandTotal = paasCloudletCost + paasDiskCost + paasIpCost
+  const el = $('totCloudletsR')
+  if (el) el.textContent = fmt(paasReservedCl)
+  const elD = $('totCloudletsD')
+  if (elD) elD.textContent = fmt(paasDynamicCl)
   $('totCloudRamUtil').textContent = fmt1(baseRam * utilPct) + ' GiB'
   $('totCloudCpuUtil').textContent = fmt1(baseCpu * utilPct) + ' GHz'
-  const perCl = baseCloudlets > 0 ? paasEffRate * utilPct : 0
   const perClEl = $('totCloudPerClUtil')
-  if (perClEl) perClEl.textContent = fmt1(perCl) + ' Kč'
-  $('totCloudCostUtil').textContent = fmt(baseCost * utilPct) + ' Kč'
+  if (perClEl) perClEl.textContent = fmt1(paasEffRate) + ' Kč'
+  $('totCloudCostUtil').textContent = fmt(paasCloudletCost) + ' Kč'
+  const diskEl = $('totDiskPaaS')
+  if (diskEl) diskEl.textContent = fmt(paasDiskCost) + ' Kč'
+  const ipEl = $('totPublicIP')
+  if (ipEl) ipEl.textContent = fmt(paasIpCost) + ' Kč'
+  const grandEl = $('totPaasGrand')
+  if (grandEl) grandEl.textContent = fmt(paasGrandTotal) + ' Kč'
   const paasCommitSel = $('paasCommitSel')
   if (paasCommitSel) paasCommitSel.value = String(paasCommitment)
   const paasMRam = $('paasCloudRamMiB'); if (paasMRam) paasMRam.value = String(paasCloudRamMiB)
   const paasMCpu = $('paasCloudCpuMHz'); if (paasMCpu) paasMCpu.value = String(paasCloudCpuMHz)
-  const paasMCost = $('paasCloudPriceCzk'); if (paasMCost) paasMCost.value = String(paasCloudPriceCzk)
-  const paasMCost2 = $('paasCloudPriceTier2Czk'); if (paasMCost2) paasMCost2.value = String(paasCloudPriceTier2Czk)
   const utilVal = $('paasUtilVal')
   if (utilVal) utilVal.textContent = paasUtil + ' %'
   const utilRange = $('paasUtilRange')
@@ -661,25 +689,35 @@ async function exportExcel() {
   pushRow([], 'blank')
 
   pushRow(['PaaS Costing / měsíc'], 'secPaaS')
-  pushRow([`Závazek (PaaS): ${commitLabel(paasCommitment)} · Cloudlet: ${paasCloudRamMiB} MiB RAM + ${paasCloudCpuMHz} MHz CPU · Cena: ${fmt1(paasCloudPriceCzk * paasCommitRatio(paasCommitment))} Kč (1–${PAAS_TIER1_CLOUDLETS} cl) / ${fmt1(paasCloudPriceTier2Czk * paasCommitRatio(paasCommitment))} Kč (${PAAS_TIER1_CLOUDLETS}+ cl)`], 'note')
-  pushRow([`Utilizace ${Math.round(utilization * 100)} %`], 'note')
+  pushRow([`Závazek (PaaS): ${commitLabel(paasCommitment)} · Cloudlet: ${paasCloudRamMiB} MiB RAM + ${paasCloudCpuMHz} MHz CPU · Virtuozzo pásma (R: 98.84–79.06 / D: 148.26–133.44 Kč/cl/měs, ×${fmt1(paasCommitRatio(paasCommitment))})`], 'note')
+  pushRow([`Utilizace ${Math.round(utilization * 100)} % · Dynamické cloudlety = ceil(celkem × utilizace)`], 'note')
   const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
+  const paasDynCl = Math.ceil(paasTotalCl * utilization)
+  const paasCloudCost = paasCloudletsCost(paasTotalCl, paasCommitment, utilization)
+  const paasDiskGB = nodes.reduce((s, n) => s + (Number(n.diskGB) || 0), 0)
+  const paasDisk = paasDiskGB * PAAS_DISK_RATE_CZK
+  const hasOp = nodes.some(n => n.group === 'opnsense')
+  const paasIp = hasOp ? PAAS_PUBLIC_IP_RATE_CZK : 0
   pushRow(['CPU', fmt1((t.cpuGHz || 0) * utilization) + ' GHz'], ['lbl', 'val'])
   pushRow(['RAM', fmt1((t.ramGB || 0) * utilization) + ' GiB'], ['lbl', 'val'])
-  pushRow(['Cloudlety', fmt(Math.round(paasTotalCl * utilization))], ['lbl', 'val'])
-  pushRow(['Cena / cloudlet (dle utilizace)', fmtKc(paasTotalCl > 0 ? (paasCloudletsCost(paasTotalCl, paasCommitment) / paasTotalCl) * utilization : 0)], ['lbl', 'val'])
-  pushRow(['Cena (PaaS)', fmtKc(paasCloudletsCost(paasTotalCl, paasCommitment) * utilization)], ['lbl', 'total'])
+  pushRow(['Cloudlety rezervované', fmt(paasTotalCl)], ['lbl', 'val'])
+  pushRow(['Cloudlety dynamické (dle utilizace)', fmt(paasDynCl)], ['lbl', 'val'])
+  pushRow(['Cena cloudletů (R + D)', fmtKc(paasCloudCost)], ['lbl', 'val'])
+  pushRow(['Cena / cloudlet (průměr)', fmtKc(paasTotalCl > 0 ? paasCloudCost / paasTotalCl : 0)], ['lbl', 'val'])
+  pushRow(['Disk PaaS (' + fmt(paasDiskGB) + ' GB × 2,40 Kč)', fmtKc(paasDisk)], ['lbl', 'val'])
+  pushRow(['Public IP', fmtKc(paasIp)], ['lbl', 'val'])
+  pushRow(['Cena (PaaS) celkem', fmtKc(paasCloudCost + paasDisk + paasIp)], ['lbl', 'total'])
   pushRow([], 'blank')
 
   const header = ['VM', 'Skupina', 'CPU GHz', 'RAM GiB', 'Disk GB', 'Tier', 'CPU', 'RAM', 'Disk', 'Cena IaaS', 'Cloudlety', 'Cena PaaS']
   pushRow(header, 'thead')
   const expTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
-  const expEffRate = expTotalCl > 0 ? paasCloudletsCost(expTotalCl, paasCommitment) / expTotalCl : 0
+  const expEffRate = expTotalCl > 0 ? paasCloudletsCost(expTotalCl, paasCommitment, utilization) / expTotalCl : 0
   for (const n of nodes) {
     const cl = paasCloudletsOf(n.cpuGHz, n.ramGB)
     pushRow([n.name, groupLabel(n.group), n.cpuGHz, n.ramGB, n.diskGB, n.diskTierLabel,
       fmtKc(n.cpuCostCZK), fmtKc(n.ramCostCZK), fmtKc(n.diskCostCZK), n.totalFormatted,
-      fmt(Math.round(cl * utilization)), fmtKc(cl * expEffRate * utilization)],
+      fmt(cl), fmtKc(cl * expEffRate)],
       { base: 'tcell', cells: { 9: 'tcellBold', 11: 'tcellBold' } })
   }
 
@@ -1056,8 +1094,6 @@ const bindPaasParam = (input, setter, min) => {
 }
 bindPaasParam($('paasCloudRamMiB'), v => { paasCloudRamMiB = v }, 1)
 bindPaasParam($('paasCloudCpuMHz'), v => { paasCloudCpuMHz = v }, 1)
-bindPaasParam($('paasCloudPriceCzk'), v => { paasCloudPriceCzk = v }, 0)
-bindPaasParam($('paasCloudPriceTier2Czk'), v => { paasCloudPriceTier2Czk = v }, 0)
 
 const paasRange = $('paasUtilRange')
 if (paasRange) {

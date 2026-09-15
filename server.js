@@ -47,12 +47,8 @@ app.use(BASE_PATH, (req, res, next) => {
     if (err) return next()
     const baseTag = BASE_PATH ? `<base href="${BASE_PATH}/">` : ''
     const paasUtilPct = Number(process.env.IaaS_PAAS_UTILIZATION)
-    const cloudletRate = parseFloat(process.env.IaaS_CLOUDLET_RATE_CZK)
-    const cloudletRateTier2 = parseFloat(process.env.IaaS_CLOUDLET_RATE_TIER2_CZK)
     const script = `<script>window.BASE_PATH=${JSON.stringify(BASE_PATH)};` +
-      `window.PAAS_UTILIZATION=${isFinite(paasUtilPct) && paasUtilPct >= 10 ? Math.min(paasUtilPct, 100) : 40};` +
-      `window.PAAS_CLOUDLET_RATE_CZK=${isFinite(cloudletRate) && cloudletRate > 0 ? cloudletRate : 152.5};` +
-      `window.PAAS_CLOUDLET_RATE_TIER2_CZK=${isFinite(cloudletRateTier2) && cloudletRateTier2 > 0 ? cloudletRateTier2 : 133.8};</script>`
+      `window.PAAS_UTILIZATION=${isFinite(paasUtilPct) && paasUtilPct >= 10 ? Math.min(paasUtilPct, 100) : 40};</script>`
     res.send(html.replace('</head>', baseTag + script + '</head>'))
   })
 })

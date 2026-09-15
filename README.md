@@ -47,9 +47,7 @@ Kopíruj ze šablony: `cp .env.example .env`
 | `IaaS_CPU_RATE_CZK_GHZ` | cena za CPU GHz/měsíc (defaultní závazek) | `108.73` (12m) |
 | `IaaS_RAM_RATE_CZK_GB` | cena za RAM GB/měsíc (defaultní závazek) | `47.30` (12m) |
 | `IaaS_DISK_RATE_CZK_GB` | cena za disk GB/měsíc, Super Fast tier (defaultní závazek) | `3.15` (12m) |
-| `IaaS_CLOUDLET_RATE_CZK` | PaaS cena za 1 cloudlet/měsíc, pásmo 1–10 (informativně) | `152.50` |
-| `IaaS_CLOUDLET_RATE_TIER2_CZK` | PaaS cena za 1 cloudlet/měsíc, pásmo 11+ (informativně) | `133.80` |
-| `IaaS_PAAS_UTILIZATION` | default využití pro PaaS sekci v % (UI slider 10–100) | `40` |
+| `IaaS_PAAS_UTILIZATION` | default využití pro PaaS sekci v % (UI slider 10–100; určuje počet dynamických cloudletů) | `40` |
 | `IaaS_NETWORK_FW_RATE_CZK` | fixní měsíční poplatek „Networking a FW" (všechny závazky) | `108` |
 | `TCLOUD_BASE_URL` | T-Cloud API base | `https://prg1.t-cloud.eu/api/2.0` |
 | `TCLOUD_REFERER` | Referer hlavička | `https://prg1.t-cloud.eu` |
@@ -103,34 +101,35 @@ Postup výpočtu (server `lib/pricing.js`, klientsky zrcadleno v `public/main.js
 
 ### 2. PaaS (cloudlety — informativní srovnání)
 
-Čistě informativní sekce v UI — **neovlivňuje cenu IaaS**. Modeluje Jelastic/Virtuozzo cloudlety:
+Čistě informativní sekce v UI — **neovlivňuje cenu IaaS**. Modeluje Virtuozzo cloudlety vč. oficiálního ceníku (objemová pásma, Kč/cloudlet/měsíc = hodinová sazba × 730 h):
 
 - **Cloudlet** = 128 MiB RAM (0.125 GiB) + 400 MHz CPU (0.4 GHz) — **obojí nastavitelné** v UI (PaaS parametry, pole „RAM cloudletu" / „CPU cloudletu").
 - **Cloudlety per VM** = `ceil(max(cpuGHz / (clCpuMHz/1000), ramGB / (clRamMiB/1024)))` (nezávislé na disku), kde `clCpuMHz` a `clRamMiB` jsou parametry cloudletu (default 400 / 128).
 - **Co dělá změna poměru RAM/CPU v cloudletu**: velikost cloudletu „vidí" jen CPU a RAM, proto změna parametru cloudletu mění **počet cloudletů každého VM** (a tím i celkový počet `N`):
   - zvětšíš-li RAM nebo CPU cloudletu → cloudlet pokryje víc zdrojů VM → klesne počet cloudletů (a naopak);
-  - z nového `N` se přepočítá **vrstvená cena** `cloudletCost(N)` (pásmo 1–10 vs 11+), poměr závazku, efektivní průměrná sazba i utilizace (cena PaaS v sekci = `N` × sazba × utilization);
-  - **cena za cloudlet v Kč se nemění** (152.50 / 133.80 Kč zůstává) — parametr mění jen *kolik* cloudletů se spočte; IaaS cena se zmnou PaaS parametrů nijak nemění (sekce je informativní);
+  - z nového `N` se přepočítá **objemová cena** (pásma níže), efektivní průměrná sazba i cena dynamické části; **ceny za cloudlet v Kč se nemění** — parametr mění jen *kolik* cloudletů se spočte;
   - příklad: VM 7.2 GHz / 2.25 GiB → default (400 MHz + 128 MiB): `ceil(max(7.2/0.4, 2.25/0.125))` = `ceil(max(18, 18))` = **18 cloudletů**; zmenšíš-li CPU cloudletu na 200 MHz → `ceil(max(36, 18))` = **36 cloudletů** (dvojnásobek).
-- **Celkem** = součet přes všechny VM.
-- **Vrstvená (objemová) cena** dle celkového počtu cloudletů měsíčně:
-  ```
-  cenaCloudletů(N) = N ≤ 10  → N × 152.50 Kč
-                   = jinak   → 10 × 152.50 + (N − 10) × 133.80 Kč
-  ```
-  (Ověřeno: 10 cloudletů = 1 525 Kč; 100 cloudletů = 13 566.9 Kč ⇒ tier 2 ≈ 133.7989 → 133.80 Kč zobrazeno. Příklad: 82 cloudletů = 10×152.50 + 72×133.80 = **11 158.6 Kč**.)
-- **Poměr závazku (PaaS)**: `paasCommitRatio(cm) = sazbaCPU(cm) / sazbaCPU(12m)`. Ceny obou pásem se tímto poměrem pronásobí (jako IaaS tedy: env override platí jen pro defaultní závazek). PaaS závazek se vybírá nezávisle na IaaS závazku (`paasCommitSel`).
-- **Efektivní průměrná sazba**: `effRate = cenaCloudletů(celkem) / celkem` — per-VM řádky ho používají, aby součet per-řádků seděl na celkovou vrstvenou cenu.
-- **Využití (utilizace)**: `paasUtil` (default 40 %, env `IaaS_PAAS_UTILIZATION`, UI slider 10–100 %). Sekce „PaaS" (pořadí: **CPU, RAM, Cloudlety, Cena / cloudlet, Cena (PaaS)**) počítá `celkem × utilization`:
-  - `CPU = Σ cpuGHz × utilization/100`, `RAM = Σ ramGB × utilization/100`, `Cloudlety = round(celkem × utilization/100)`;
-  - **Cena / cloudlet (dle využití)** = `effRate × utilization/100` (průměrná sazba po vrstvení × využití);
-  - **cena (PaaS) = cenaCloudletů(celkem) × utilization/100**.
-  - Tabulka VM: sloupec „Cloudlety" = `round(cl × utilization/100)`, „Cena PaaS" = `round(cl × effRate × utilization/100) Kč`.
-- **PaaS závazek — server vs UI**: server hlásí v `/api/*` surovou vrstvenou cenu (`cloudletCostCZK`, bez poměru závazku); UI aplikuje poměr závazku a utilizaci lokálně.
+- **Celkem `N`** = součet přes všechny VM (= **rezervované** cloudlety, platí se vždy).
+- **Virtuozzo ceník cloudletů (objemová pásma na celkový počet):**
+  | Pásmo | 1–16 | 17–32 | 33–64 | 65–128 | 129+ |
+  |---|---|---|---|---|---|
+  | **Rezervované** Kč/cl/měs | 98.84 | 93.88 | 88.91 | 84.02 | 79.06 |
+  | **Dynamické** Kč/cl/měs | 148.26 | 144.54 | 140.82 | 137.09 | 133.44 |
+  (Hodinové sazby × 730 h: 0.1354/0.1286/0.1218/0.1151/0.1083 → 98.84/93.88/88.91/84.02/79.06 a 0.2031/0.1980/0.1929/0.1878/0.1828 → 148.26/144.54/140.82/137.09/133.44. Sleva: rezervované 33–47 %, dynamické 0–10 %.)
+- **Výpočet ceny**: `cloudletCost(N) = band(N, reservovanée) + band(ceil(N × utilization), dynamické)`, kde `band(n, sazby)` rozpočítá `n` do pásem (např. N=82: 16×98.84 + 16×93.88 + 32×88.91 + 18×84.02 = **7 441 Kč** rezervované; dynamické 33 = 16×148.26 + 16×144.54 + 1×140.82 = **4 825.62 Kč**; celkem **12 266.62 Kč**).
+- **Využití (utilizace)**: `paasUtil` (default 40 %, env `IaaS_PAAS_UTILIZATION`, UI slider 10–100 %) určuje počet **dynamických** cloudletů `ceil(N × utilization)`; rezervované se platí vždy beze změny. CPU/RAM v sekci se zobrazují na utilizaci (využité kapacity).
+- **Další položky Virtuozzo** (přičítají se k PaaS celkem, neovlivněné utilizací):
+  - **Disk PaaS** = Σ diskGB všech VM × **2.40 Kč/GB/měs** (0.003286 Kč/h × 730);
+  - **Public IP** = **120.01 Kč/IP/měs** (0.1644 Kč/h × 730), jen pokud je v topologii firewall (skupina `opnsense`);
+  - **External traffic** se nekalkuluje (nemá v topologii vstup).
+- **Úhrn „Cena PaaS celkem"** = cena cloudletů (R + D) + Disk PaaS + Public IP.
+- **Poměr závazku (PaaS)**: `paasCommitRatio(cm) = sazbaCPU(cm) / sazbaCPU(12m)`; násobí cenu cloudletů (stejná logika jako u IaaS: env override jen pro defaultní závazek). PaaS závazek se volí nezávisle (`paasCommitSel`).
+- **Efektivní průměrná sazba**: `effRate = cenaCloudletů(N) / N` — per-VM řádky ji používají, aby součet seděl na celkovou cenu; per-VM „Cena PaaS" = `cl × effRate`.
+- **PaaS závazek — server vs UI**: server hlásí v `/api/*` objemovou cenu (`cloudletCostCZK`, bez poměru závazku); UI aplikuje poměr závazku a utilizaci lokálně.
 
 ### 3. Export Excel (.xlsx)
 
-Kliknutí „Export Excel" zrcadlí přesně web obsah (`exportExcel` v `public/main.js`): oba costingy (IaaS + PaaS s utilizací), disk podle tieru, cenu podle skupiny, sazby, tabulku VM (sloupce `VM, Skupina, CPU GHz, RAM GiB, Disk GB, Tier, CPU, RAM, Disk, Cena IaaS, Cloudlety, Cena PaaS`). PaaS souhrn má řádky ve stejném pořadí jako web (CPU → RAM → Cloudlety → **Cena / cloudlet (dle utilizace)** → Cena (PaaS)). Nahoře se vloží **obrázek topologie** (html2canvas + JSZip), pokud je k dispozici; řádky se posunou tak, aby obrázek nepřekrýval text.
+Kliknutí „Export Excel" zrcadlí přesně web obsah (`exportExcel` v `public/main.js`): oba costingy (IaaS + PaaS s utilizací), disk podle tieru, cenu podle skupiny, sazby, tabulku VM (sloupce `VM, Skupina, CPU GHz, RAM GiB, Disk GB, Tier, CPU, RAM, Disk, Cena IaaS, Cloudlety, Cena PaaS`). PaaS souhrn má řádky ve stejném pořadí jako web (CPU → RAM → Cloudlety rezervované → Cloudlety dynamické → Cena cloudletů → Cena / cloudlet → Disk PaaS → Public IP → Cena PaaS celkem). Nahoře se vloží **obrázek topologie** (html2canvas + JSZip), pokud je k dispozici; řádky se posunou tak, aby obrázek nepřekrýval text. Sloupec „Cloudlety" v tabulce VM zobrazuje rezervovaný počet cloudletů daného VM.
 
 ### 4. Topologie
 

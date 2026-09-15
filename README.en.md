@@ -47,9 +47,7 @@ Copy from the template: `cp .env.example .env`
 | `IaaS_CPU_RATE_CZK_GHZ` | price per CPU GHz/month (default commitment) | `108.73` (12m) |
 | `IaaS_RAM_RATE_CZK_GB` | price per RAM GB/month (default commitment) | `47.30` (12m) |
 | `IaaS_DISK_RATE_CZK_GB` | price per disk GB/month, Super Fast tier (default commitment) | `3.15` (12m) |
-| `IaaS_CLOUDLET_RATE_CZK` | PaaS price per cloudlet/month, tier 1–10 (informational only) | `152.50` |
-| `IaaS_CLOUDLET_RATE_TIER2_CZK` | PaaS price per cloudlet/month, tier 11+ (informational only) | `133.80` |
-| `IaaS_PAAS_UTILIZATION` | default utilization for the PaaS section in % (UI slider 10–100) | `40` |
+| `IaaS_PAAS_UTILIZATION` | default utilization for the PaaS section in % (UI slider 10–100; determines the number of dynamic cloudlets) | `40` |
 | `IaaS_NETWORK_FW_RATE_CZK` | flat monthly "Networking and FW" fee (all commitments) | `108` |
 | `TCLOUD_BASE_URL` | T-Cloud API base | `https://prg1.t-cloud.eu/api/2.0` |
 | `TCLOUD_REFERER` | Referer header | `https://prg1.t-cloud.eu` |
@@ -103,34 +101,35 @@ Calculation steps (server `lib/pricing.js`, mirrored client-side in `public/main
 
 ### 2. PaaS (cloudlets — informational comparison)
 
-An informational section in the UI — **does not affect the IaaS price**. It models Jelastic/Virtuozzo cloudlets:
+An informational section in the UI — **does not affect the IaaS price**. It models Virtuozzo cloudlets including the official price list (volume bands, CZK/cloudlet/month = hourly rate × 730 h):
 
 - **Cloudlet** = 128 MiB RAM (0.125 GiB) + 400 MHz CPU (0.4 GHz) — **both adjustable** in the UI (PaaS parameters, "Cloudlet RAM" / "Cloudlet CPU" fields).
 - **Cloudlets per VM** = `ceil(max(cpuGHz / (clCpuMHz/1000), ramGB / (clRamMiB/1024)))` (independent of disk), where `clCpuMHz` and `clRamMiB` are the cloudlet parameters (default 400 / 128).
 - **What changing the RAM/CPU ratio in a cloudlet does**: the cloudlet size only "sees" CPU and RAM, so changing the cloudlet parameters changes **the number of cloudlets of every VM** (and thus the total `N`):
   - increasing a cloudlet's RAM or CPU → the cloudlet covers more of the VM's resources → fewer cloudlets (and vice versa);
-  - the new `N` is used to recompute the **tiered price** `cloudletCost(N)` (band 1–10 vs 11+), the commitment ratio, the effective average rate and the utilization (the PaaS price in the section = `N` × rate × utilization);
-  - the **price per cloudlet in CZK does not change** (152.50 / 133.80 CZK stays) — the parameter only changes *how many* cloudlets are counted; the IaaS price is unaffected by PaaS parameter changes (the section is informational);
+  - the new `N` is used to recompute the **volume price** (bands below), the effective average rate and the dynamic share price; **price per cloudlet in CZK does not change** — the parameter only changes *how many* cloudlets are counted;
   - example: VM 7.2 GHz / 2.25 GiB → default (400 MHz + 128 MiB): `ceil(max(7.2/0.4, 2.25/0.125))` = `ceil(max(18, 18))` = **18 cloudlets**; reducing the cloudlet CPU to 200 MHz → `ceil(max(36, 18))` = **36 cloudlets** (double).
-- **Total** = sum across all VMs.
-- **Tiered (volume) price** depending on the total cloudlet count per month:
-  ```
-  cloudletCost(N) = N ≤ 10  → N × 152.50 CZK
-                  = otherwise → 10 × 152.50 + (N − 10) × 133.80 CZK
-  ```
-  (Verified: 10 cloudlets = 1 525 CZK; 100 cloudlets = 13 566.9 CZK ⇒ tier 2 ≈ 133.7989 → displayed as 133.80 CZK. Example: 82 cloudlets = 10×152.50 + 72×133.80 = **11 158.6 CZK**.)
-- **Commitment ratio (PaaS)**: `paasCommitRatio(cm) = cpuRate(cm) / cpuRate(12m)`. Both tier prices are multiplied by this ratio (as with IaaS, an env override applies only to the default commitment). The PaaS commitment is chosen independently of the IaaS commitment (`paasCommitSel`).
-- **Effective average rate**: `effRate = cloudletCost(total) / total` — per-VM rows use it so the per-row sum matches the total tiered price.
-- **Utilization**: `paasUtil` (default 40 %, env `IaaS_PAAS_UTILIZATION`, UI slider 10–100 %). The "PaaS" section (order: **CPU, RAM, Cloudlets, Price / cloudlet, Price (PaaS)**) computes `total × utilization`:
-  - `CPU = Σ cpuGHz × utilization/100`, `RAM = Σ ramGB × utilization/100`, `Cloudlets = round(total × utilization/100)`;
-  - **price / cloudlet (per utilization)** = `effRate × utilization/100` (average rate after tiering × utilization);
-  - **price (PaaS) = cloudletCost(total) × utilization/100**.
-  - VM table: "Cloudlets" column = `round(cl × utilization/100)`, "PaaS price" = `round(cl × effRate × utilization/100) CZK`.
-- **PaaS commitment — server vs UI**: the server reports the raw tiered price in `/api/*` (`cloudletCostCZK`, without the commitment ratio); the UI applies the commitment ratio and utilization locally.
+- **Total `N`** = sum across all VMs (= the **reserved** cloudlets, always paid).
+- **Virtuozzo cloudlet price list (volume bands on total count):**
+  | Band | 1–16 | 17–32 | 33–64 | 65–128 | 129+ |
+  |---|---|---|---|---|---|
+  | **Reserved** CZK/cl/month | 98.84 | 93.88 | 88.91 | 84.02 | 79.06 |
+  | **Dynamic** CZK/cl/month | 148.26 | 144.54 | 140.82 | 137.09 | 133.44 |
+  (Hourly rates × 730 h: 0.1354/0.1286/0.1218/0.1151/0.1083 → 98.84/93.88/88.91/84.02/79.06 and 0.2031/0.1980/0.1929/0.1878/0.1828 → 148.26/144.54/140.82/137.09/133.44. Discounts: reserved 33–47 %, dynamic 0–10 %.)
+- **Price calculation**: `cloudletCost(N) = band(N, reserved) + band(ceil(N × utilization), dynamic)`, where `band(n, rates)` distributes `n` across the bands (e.g. N=82: 16×98.84 + 16×93.88 + 32×88.91 + 18×84.02 = **7 441 CZK** reserved; dynamic 33 = 16×148.26 + 16×144.54 + 1×140.82 = **4 825.62 CZK**; total **12 266.62 CZK**).
+- **Utilization**: `paasUtil` (default 40 %, env `IaaS_PAAS_UTILIZATION`, UI slider 10–100 %) determines the number of **dynamic** cloudlets `ceil(N × utilization)`; the reserved ones are always paid unchanged. The CPU/RAM figures shown in the section reflect utilization (actually used capacity).
+- **Other Virtuozzo line items** (added to the PaaS total, not affected by utilization):
+  - **PaaS disk** = Σ diskGB of all VMs × **2.40 CZK/GB/month** (0.003286 CZK/h × 730);
+  - **Public IP** = **120.01 CZK/IP/month** (0.1644 CZK/h × 730), only when the topology contains a firewall (`opnsense` group);
+  - **external traffic** is not calculated (no input in the topology).
+- **"Total PaaS price"** = cloudlet price (R + D) + PaaS disk + Public IP.
+- **Commitment ratio (PaaS)**: `paasCommitRatio(cm) = cpuRate(cm) / cpuRate(12m)`; it multiplies the cloudlet price (same logic as IaaS — an env override applies only to the default commitment). The PaaS commitment is chosen independently (`paasCommitSel`).
+- **Effective average rate**: `effRate = cloudletCost(N) / N` — per-VM rows use it so the per-row sum matches the total price; per-VM "PaaS price" = `cl × effRate`.
+- **PaaS commitment — server vs UI**: the server reports the raw volume price in `/api/*` (`cloudletCostCZK`, without the commitment ratio); the UI applies the commitment ratio and utilization locally.
 
 ### 3. Excel export (.xlsx)
 
-Clicking "Export Excel" mirrors the web content exactly (`exportExcel` in `public/main.js`): both costings (IaaS + PaaS with utilization), disk by tier, price by group, rates, and the VM table (columns `VM, Group, CPU GHz, RAM GiB, Disk GB, Tier, CPU, RAM, Disk, Price IaaS, Cloudlets, Price PaaS`). The PaaS summary rows follow the same order as the web (CPU → RAM → Cloudlets → **Price / cloudlet (per utilization)** → Price (PaaS)). A **topology screenshot** (html2canvas + JSZip) is embedded at the top when available; rows are shifted so the image does not cover the text.
+Clicking "Export Excel" mirrors the web content exactly (`exportExcel` in `public/main.js`): both costings (IaaS + PaaS with utilization), disk by tier, price by group, rates, and the VM table (columns `VM, Group, CPU GHz, RAM GiB, Disk GB, Tier, CPU, RAM, Disk, Price IaaS, Cloudlets, Price PaaS`). The PaaS summary rows follow the same order as the web (CPU → RAM → Reserved cloudlets → Dynamic cloudlets → Cloudlet price → Price / cloudlet → PaaS disk → Public IP → Total PaaS price). A **topology screenshot** (html2canvas + JSZip) is embedded at the top when available; rows are shifted so the image does not cover the text. The VM table's "Cloudlets" column shows each VM's reserved cloudlet count.
 
 ### 4. Topology
 
