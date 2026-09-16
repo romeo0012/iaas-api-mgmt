@@ -307,6 +307,8 @@ body {
   background: #fff;
 }
 .cost-item .rb-wrap > span { font-size: 15px; font-weight: 700; }
+.cost-item .rb-wrap .rb-note { flex-basis: 100%; font-size: 10px; font-weight: 500; color: #889; }
+.cost-summary .cost-item .rb-wrap .rb-note { color: #889; }
 .cost-summary .cost-item .rb-wrap > span { color: #6b4fc0; }
 .cost-total { background: #f0f6ff; border-color: #1f6feb; }
 .cost-summary .cost-item:not(.cost-total) { background: #faf8ff; border-color: #e6e0f5; }
