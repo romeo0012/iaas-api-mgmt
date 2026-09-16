@@ -54,7 +54,7 @@ Copy from the template: `cp .env.example .env`
 | `IaaS_PAAS_RESERVED_RATES` | reserved PaaS cloudlet rates (CZK/cl/month, per band, comma-separated) | `98.84,93.88,88.91,84.02,79.06` |
 | `IaaS_PAAS_DYNAMIC_RATES` | dynamic PaaS cloudlet rates (CZK/cl/month, per band) | `148.26,144.54,140.82,137.09,133.44` |
 | `IaaS_PAAS_BANDS` | band upper limits for cloudlets (the final band auto-extends to ∞) | `16,32,64,128` |
-| `IaaS_PAAS_DISK_RATE_CZK` | PaaS disk rate (CZK/GB/month) | `2.40` |
+| `IaaS_PAAS_DISK_RATE_CZK` | PaaS disk **override** (flat CZK/GB/month); empty = IaaS "Standard" tier rate by commitment | *(empty)* |
 | `IaaS_PAAS_PUBLIC_IP_RATE_CZK` | PaaS public IP (CZK/IP/month, firewall only) | `120.01` |
 | `TCLOUD_BASE_URL` | T-Cloud API base | `https://prg1.t-cloud.eu/api/2.0` |
 | `TCLOUD_REFERER` | Referer header | `https://prg1.t-cloud.eu` |
@@ -135,7 +135,7 @@ An informational section in the UI — **does not affect the IaaS price**. It mo
   - example @100 %: R=13 → **1 284.92 CZK**; D=69 → 16×148.26 + 16×144.54 + 32×140.82 + 5×137.09 = **9 876.49 CZK**; total **11 161.41 CZK** (average ~136 CZK/cl, not 2× as in the previous model).
 - **Utilization**: `paasUtil` (default 40 %, env `IaaS_PAAS_UTILIZATION`, UI slider 10–100 %) determines the number of **dynamic** cloudlets `ceil(N × utilization)`; the reserved ones are always paid unchanged. The CPU/RAM figures shown in the section reflect utilization (actually used capacity).
 - **Other Virtuozzo line items** (added to the PaaS total, not affected by utilization):
-  - **PaaS disk** = Σ diskGB of all VMs × **2.40 CZK/GB/month** (0.003286 CZK/h × 730);
+  - **PaaS disk** = Σ diskGB of all VMs × **IaaS "Standard" tier rate by commitment** (no commitment 1.95 / 12m 1.35 / 24m 1.28 / 36m 1.20 CZK/GB/month); `IaaS_PAAS_DISK_RATE_CZK` can override with a flat rate;
   - **Public IP** = **120.01 CZK/IP/month** (0.1644 CZK/h × 730), only when the topology contains a firewall (`opnsense` group);
   - **external traffic** is not calculated (no input in the topology).
 - **"Total PaaS price"** = cloudlet price (R + D) + PaaS disk + Public IP.

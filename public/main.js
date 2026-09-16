@@ -25,7 +25,8 @@ let PAAS_RESERVED_RATES = [98.84, 93.88, 88.91, 84.02, 79.06] // 1–16, 17–32
 let PAAS_DYNAMIC_RATES = [148.26, 144.54, 140.82, 137.09, 133.44] // 1–16, 17–32, 33–64, 65–128, 129+
 let PAAS_BANDS = [16, 32, 64, 128, Infinity]
 let PAAS_RESERVATION_PCT = 15 // rezervované cloudlety = vždy placené minimum (15 % z celku)
-let PAAS_DISK_RATE_CZK = 2.40 // cena / GB / měsíc (0.003286 Kč/h × 730)
+let PAAS_DISK_RATE_CZK = null // null = sazba IaaS tieru "Standard" dle závazku; explicitní IaaS_PAAS_DISK_RATE_CZK ji přebije
+let PAAS_STD_DISK_RATES = null // { 0: 1.95, 12: 1.35, 24: 1.28, 36: 1.20 } — z window.PAAS_CONFIG
 let PAAS_PUBLIC_IP_RATE_CZK = 120.01 // cena / IP / měsíc (0.1644 Kč/h × 730)
 const _pc = window.PAAS_CONFIG
 if (_pc && _pc.utilizationPct >= 10) paasUtil = Math.min(_pc.utilizationPct, 100)
@@ -35,6 +36,7 @@ if (_pc) {
   if (Array.isArray(_pc.bands) && _pc.bands.length) PAAS_BANDS = _pc.bands.concat(Infinity)
   if (_pc.reservationPct > 0) PAAS_RESERVATION_PCT = _pc.reservationPct
   if (_pc.diskRateCzk > 0) PAAS_DISK_RATE_CZK = _pc.diskRateCzk
+  if (_pc.standardDiskRates) PAAS_STD_DISK_RATES = _pc.standardDiskRates
   if (_pc.publicIpRateCzk > 0) PAAS_PUBLIC_IP_RATE_CZK = _pc.publicIpRateCzk
 }
 let paasCommitment = 12
@@ -174,6 +176,15 @@ function paasCloudletsCost(totalCl, cm, util) {
   return cost * ratio
 }
 
+// PaaS disk sazba = IaaS tier "Standard" dle vybraného závazku (override z .env má přednost).
+function paasDiskRate(cm) {
+  if (PAAS_DISK_RATE_CZK != null) return PAAS_DISK_RATE_CZK
+  if (PAAS_STD_DISK_RATES && PAAS_STD_DISK_RATES[cm] != null) return PAAS_STD_DISK_RATES[cm]
+  const dt = lastCosting && lastCosting.diskTiers
+  if (dt && dt.standard && dt.standard.rates && dt.standard.rates[cm] != null) return dt.standard.rates[cm]
+  return 1.35
+}
+
 function commitLabel(cm) {
   return cm === 0 ? 'Bez závazku' : cm + ' měs.'
 }
@@ -200,7 +211,7 @@ function renderCosting(costing) {
   const paasDiskCl = Array.isArray(costing.perNode)
     ? costing.perNode.reduce((s, n) => s + (Number(n.diskGB) || 0), 0)
     : 0
-  const paasDiskCost = paasDiskCl * PAAS_DISK_RATE_CZK
+  const paasDiskCost = paasDiskCl * paasDiskRate(paasCommitment)
   const hasOpn = Array.isArray(costing.perNode) && costing.perNode.some(n => n.group === 'opnsense')
   const paasIpCost = hasOpn ? PAAS_PUBLIC_IP_RATE_CZK : 0
   const paasGrandTotal = paasCloudletCost + paasDiskCost + paasIpCost
@@ -220,7 +231,7 @@ function renderCosting(costing) {
   const grandEl = $('totPaasGrand')
   if (grandEl) grandEl.textContent = fmt(paasGrandTotal) + ' Kč'
   const paasDiscSumGb = $('paasDiscSumGb')
-  if (paasDiscSumGb) paasDiscSumGb.textContent = fmt(paasDiskCl) + ' GB × ' + fmt(PAAS_DISK_RATE_CZK) + ' Kč'
+  if (paasDiscSumGb) paasDiscSumGb.textContent = fmt(paasDiskCl) + ' GB × ' + fmt1(paasDiskRate(paasCommitment)) + ' Kč'
   const paasDiscSum = $('paasDiscSum')
   if (paasDiscSum) paasDiscSum.textContent = fmt(paasDiskCost) + ' Kč'
   const paasCommitSel = $('paasCommitSel')
@@ -747,7 +758,8 @@ async function exportExcel() {
   const paasDynCl = paasSplitXl.dynamic
   const paasCloudCost = paasCloudletsCost(paasTotalCl, paasCommitment, utilization)
   const paasDiskGB = nodes.reduce((s, n) => s + (Number(n.diskGB) || 0), 0)
-  const paasDisk = paasDiskGB * PAAS_DISK_RATE_CZK
+  const paasDiskRate_ = paasDiskRate(paasCommitment)
+  const paasDisk = paasDiskGB * paasDiskRate_
   const hasOp = nodes.some(n => n.group === 'opnsense')
   const paasIp = hasOp ? PAAS_PUBLIC_IP_RATE_CZK : 0
   pushRow(['CPU', fmt1((t.cpuGHz || 0) * utilization) + ' GHz'], ['lbl', 'val'])
@@ -756,7 +768,7 @@ async function exportExcel() {
   pushRow(['Cloudlety dynamické (dle utilizace)', fmt(paasDynCl)], ['lbl', 'val'])
   pushRow(['Cena cloudletů (R + D)', fmtKc(paasCloudCost)], ['lbl', 'val'])
   pushRow(['Cena / cloudlet (průměr)', fmtKc(paasTotalCl > 0 ? paasCloudCost / paasTotalCl : 0)], ['lbl', 'val'])
-  pushRow(['Disk PaaS (' + fmt(paasDiskGB) + ' GB × 2,40 Kč)', fmtKc(paasDisk)], ['lbl', 'val'])
+  pushRow(['Disk PaaS (' + fmt(paasDiskGB) + ' GB × ' + fmt1(paasDiskRate_) + ' Kč)', fmtKc(paasDisk)], ['lbl', 'val'])
   pushRow(['Public IP', fmtKc(paasIp)], ['lbl', 'val'])
   pushRow(['Cena (PaaS) celkem', fmtKc(paasCloudCost + paasDisk + paasIp)], ['lbl', 'total'])
   pushRow([], 'blank')

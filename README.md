@@ -54,7 +54,7 @@ Kopíruj ze šablony: `cp .env.example .env`
 | `IaaS_PAAS_RESERVED_RATES` | rezervované sazby PaaS cloudletů (Kč/cl/měs, po pásmech, oddělené čárkou) | `98.84,93.88,88.91,84.02,79.06` |
 | `IaaS_PAAS_DYNAMIC_RATES` | dynamické sazby PaaS cloudletů (Kč/cl/měs, po pásmech) | `148.26,144.54,140.82,137.09,133.44` |
 | `IaaS_PAAS_BANDS` | horní hranice pásem cloudletů (poslední pásmo se automaticky doplní na ∞) | `16,32,64,128` |
-| `IaaS_PAAS_DISK_RATE_CZK` | PaaS cena disku (Kč/GB/měs) | `2.40` |
+| `IaaS_PAAS_DISK_RATE_CZK` | PaaS disk **override** (plochá Kč/GB/měs); prázdné = sazba IaaS tieru „Standard" dle závazku | *(prázdné)* |
 | `IaaS_PAAS_PUBLIC_IP_RATE_CZK` | PaaS Public IP (Kč/IP/měs, jen s firewallem) | `120.01` |
 | `TCLOUD_BASE_URL` | T-Cloud API base | `https://prg1.t-cloud.eu/api/2.0` |
 | `TCLOUD_REFERER` | Referer hlavička | `https://prg1.t-cloud.eu` |
@@ -133,7 +133,7 @@ Postup výpočtu (server `lib/pricing.js`, klientsky zrcadleno v `public/main.js
   - příklad @100 %: R=13 → **1 284,92 Kč**; D=69 → 16×148,26 + 16×144,54 + 32×140,82 + 5×137,09 = **9 876,49 Kč**; celkem **11 161,41 Kč** (průměr ~136 Kč/cl, nikoli 2× jako předchozí model).
 - **Využití (utilizace)**: `paasUtil` (default 40 %, env `IaaS_PAAS_UTILIZATION`, UI slider 10–100 %) určuje počet **dynamických** cloudletů `ceil(N × utilization)`; rezervované se platí vždy beze změny. CPU/RAM v sekci se zobrazují na utilizaci (využité kapacity).
 - **Další položky Virtuozzo** (přičítají se k PaaS celkem, neovlivněné utilizací):
-  - **Disk PaaS** = Σ diskGB všech VM × **2.40 Kč/GB/měs** (0.003286 Kč/h × 730);
+  - **Disk PaaS** = Σ diskGB všech VM × **sazba IaaS tieru „Standard" dle závazku** (bez závazku 1.95 / 12m 1.35 / 24m 1.28 / 36m 1.20 Kč/GB/měs); `IaaS_PAAS_DISK_RATE_CZK` ji může přebít plochou sazbou;
   - **Public IP** = **120.01 Kč/IP/měs** (0.1644 Kč/h × 730), jen pokud je v topologii firewall (skupina `opnsense`);
   - **External traffic** se nekalkuluje (nemá v topologii vstup).
 - **Úhrn „Cena PaaS celkem"** = cena cloudletů (R + D) + Disk PaaS + Public IP.
