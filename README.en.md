@@ -88,7 +88,7 @@ Business Cloud IaaS is billed as a **Resource Pool** across the whole architectu
 total (IaaS) = ceil(Σ CPU GHz) × cpuRate
             + Σ RAM GB × ramRate
             + Σ disk GB × tierRate (per-VM tier)
-            + Σ disk GB × 0.68     (Remote backup × total disk)
+            + Σ disk GB × 2 × 0.68        (Remote backup: 2× total disk × rate)
             + "Public IP"              (108 Kč, only when a firewall / opnsense group is present)
              + Σ RAM GB × ramRate
              + Σ disk GB × rate (per each VM's tier)
@@ -100,13 +100,13 @@ Calculation steps (server `lib/pricing.js`, mirrored client-side in `public/main
 1. **Per-VM lines** (`nodeCost`):
    - `cpuCost = cpuGHz × cpuRate(cm)` (exact, not rounded)
    - `ramCost = ramGB × ramRate(cm)`
-   - `diskCost = diskGB × (tierRate + basicRate)` — the BC calculator always adds a base **"Basic" volume of the same size** on top of a VM's disk at its performance tier
+   - `diskCost = diskGB × tierRate` — the VM's disk is billed at its own performance-tier rate only (no synthetic "Basic base")
    - `total = cpuCost + ramCost + diskCost`
 2. **Pooled sums** (`summarize`):
    - CPU is billed on the **total GHz rounded up to a whole number** (like the calculator: 36.8 GHz → 37 × rate). Per-node lines stay **exact**; only the pooled CPU is rounded. The difference between the per-node sum and the pooled CPU price comes from this rounding.
    - RAM and disk are summed exactly.
-   - `diskCostCZK (total) = Σ per-node diskCost` (= Σ performance tiers + total disk at the Basic rate).
-3. **Disk by tier** (`diskByTier`): for the Super Fast / Fast / Standard tiers, the GB of all VMs of that tier are summed × tier rate; a line **`Basic (basis)`** = **total disk of all VMs** × Basic rate is always added.
+   - `diskCostCZK (total) = Σ per-node diskCost` (= Σ tier disks × their rates).
+3. **Disk by tier** (`diskByTier`): the GB of all VMs using a given tier are summed × that tier's rate; a tier line appears **only when the topology actually contains VMs of that tier** (Super Fast / Fast / Standard / Basic). No synthetic rows.
 4. **Price by group**: sum of per-node `totalCZK` + VM count in each group.
 5. Formatting: `formatCZK` rounds to whole CZK and separates thousands with spaces (`1 158 Kč`).
 

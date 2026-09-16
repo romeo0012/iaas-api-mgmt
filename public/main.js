@@ -200,9 +200,6 @@ function renderCosting(costing) {
   const paasDiskCl = Array.isArray(costing.perNode)
     ? costing.perNode.reduce((s, n) => s + (Number(n.diskGB) || 0), 0)
     : 0
-  const paasStdCl = Array.isArray(costing.perNode)
-    ? costing.perNode.filter(n => n.diskTier === 'standard').reduce((s, n) => s + (Number(n.diskGB) || 0), 0)
-    : 0
   const paasDiskCost = paasDiskCl * PAAS_DISK_RATE_CZK
   const hasOpn = Array.isArray(costing.perNode) && costing.perNode.some(n => n.group === 'opnsense')
   const paasIpCost = hasOpn ? PAAS_PUBLIC_IP_RATE_CZK : 0
@@ -222,12 +219,8 @@ function renderCosting(costing) {
   if (ipEl) ipEl.textContent = fmt(paasIpCost) + ' Kč'
   const grandEl = $('totPaasGrand')
   if (grandEl) grandEl.textContent = fmt(paasGrandTotal) + ' Kč'
-  const paasDiscGb = $('paasDiscGb')
-  if (paasDiscGb) paasDiscGb.textContent = fmt(paasStdCl) + ' GB × ' + fmt(PAAS_DISK_RATE_CZK) + ' Kč'
   const paasDiscSumGb = $('paasDiscSumGb')
   if (paasDiscSumGb) paasDiscSumGb.textContent = fmt(paasDiskCl) + ' GB × ' + fmt(PAAS_DISK_RATE_CZK) + ' Kč'
-  const paasDiscCost = $('paasDiscCost')
-  if (paasDiscCost) paasDiscCost.textContent = fmt(paasStdCl * PAAS_DISK_RATE_CZK) + ' Kč'
   const paasDiscSum = $('paasDiscSum')
   if (paasDiscSum) paasDiscSum.textContent = fmt(paasDiskCost) + ' Kč'
   const paasCommitSel = $('paasCommitSel')

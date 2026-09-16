@@ -88,7 +88,7 @@ Business Cloud IaaS je účtovaný jako **Resource Pool** přes celou architektu
 celkem (IaaS) = ceil(Σ CPU GHz) × sazbaCPU
               + Σ RAM GB × sazbaRAM
               + Σ disk GB × sazba (dle tieru každého VM)
-              + Σ disk GB × 0,68 Kč          (Remote backup, za každý GB celkového disku)
+              + Σ disk GB × 2 × 0,68 Kč        (Remote backup, 2× celkový disk × sazba)
               + "Public IP"                        (108 Kč, jen pokud je firewall / skupina opnsense)
 ```
 
@@ -97,15 +97,15 @@ Postup výpočtu (server `lib/pricing.js`, klientsky zrcadleno v `public/main.js
 1. **Per-VM řádky** (`nodeCost`):
    - `cpuCost = cpuGHz × sazbaCPU(cm)` (exaktní, nezaokrouhleno)
    - `ramCost = ramGB × sazbaRAM(cm)`
-   - `diskCost = diskGB × (sazbaTieru + sazbaBasic)` — BC kalkulačka si k VM disku v výkonnostním tieru vždy přičte ještě **základní „Basic" svazek stejné velikosti**
+   - `diskCost = diskGB × sazbaTieru` — disk VM se účtuje jen sazbou svého výkonnostního tieru (žádný syntetický „Basic" svazek navíc)
    - `total = cpuCost + ramCost + diskCost`
 2. **Poolované součty** (`summarize`):
    - počítač se **zaokrouhluje nahoru na celé GHz** (jako kalkulačka: 36.8 GHz → 37 × sazba). Per-node řádky zůstávají **exaktní**; zaokrouhlí se jen pooled CPU. Rozdíl per-node součtu a pooled CPU ceny je tímto zaokrouhlením.
    - RAM i disk se sčítají přesně.
-   - `diskCostCZK (celkem) = Σ per-node diskCost` (= Σ výkonnostní tiery + celkový disk na Basic sazbě).
-3. **Disk podle tieru** (`diskByTier`): pro tierdeklarace Super Fast / Fast / Standard se sečtou GB všech VM daného tieru × sazba tieru; navíc vždy přibude řádek **`Basic (základ)`** = **celkový disk všech VM** × sazba Basic.
+   - `diskCostCZK (celkem) = Σ per-node diskCost` (= Σ disky tierů × jejich sazby).
+3. **Disk podle tieru** (`diskByTier`): sečtou se GB všech VM daného tieru × sazba tieru; řádek tieru se zobrazí **jen když topologie reálně obsahuje VM s tímto tierem** (Super Fast / Fast / Standard / Basic). Žádné syntetické řádky.
 4. **Cena podle skupiny**: součet per-node `totalCZK` + počet VM v každé skupině.
-5. **Remote backup**: `celkový disk × 0,68 Kč` (nebo `IaaS_REMOTE_BACKUP_RATE_CZK` z `.env`). Připočítává se k celkové ceně a zobrazuje se v IaaS panelu i v Excelu.
+5. **Remote backup**: `2 × celkový disk × 0,68 Kč` (nebo `IaaS_REMOTE_BACKUP_RATE_CZK` z `.env`). Připočítává se k celkové ceně a zobrazuje se v IaaS panelu i v Excelu.
 5. Formátování: `formatCZK` zaokrouhlí na celé Kč a oddělí mezery po tisících (`1 158 Kč`).
 
 ### 2. PaaS (cloudlety — informativní srovnání)
