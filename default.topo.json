@@ -1,5 +1,5 @@
 {
-  "envName": "dev-kube.prg1paas.t-cloud.eu",
+  "envName": "",
   "commitment": 12,
   "groups": {
     "app": { "name": "Aplikační servery", "label": "Aplikace", "vlanName": "APP", "diskTier": "standard" },
@@ -12,8 +12,9 @@
     "opnsense": { "name": "WAN", "uuid": "" }
   },
   "nodes": [
-    { "group": "security", "name": "Sec-01", "label": "Firewall/LoadBalancing", "cpuGHz": 4, "ramGB": 4, "diskGB": 20, "diskTier": "standard" },
-    { "group": "app", "name": "App-01", "label": "", "cpuGHz": 7.2, "ramGB": 2.25, "diskGB": 50, "diskTier": "standard" },
-    { "group": "db", "name": "DB-01", "label": "", "cpuGHz": 4, "ramGB": 4, "diskGB": 120, "diskTier": "fast" }
-  ]
+    { "group": "opnsense", "name": "Sec-01", "label": "Firewall/LoadBalancing", "cpuGHz": 4, "ramGB": 4, "diskGB": 50, "diskTier": "fast", "excludeIaaS": false },
+    { "group": "app", "name": "App-01", "label": "", "cpuGHz": 8, "ramGB": 4, "diskGB": 100, "diskTier": "standard", "excludeIaaS": false },
+    { "group": "db", "name": "Db-01", "label": "", "cpuGHz": 4, "ramGB": 4, "diskGB": 300, "diskTier": "fast", "excludeIaaS": false }
+  ],
+  "remoteBackupGB": null
 }
