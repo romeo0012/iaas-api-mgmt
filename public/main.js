@@ -219,6 +219,14 @@ function renderCosting(costing) {
   if (ipEl) ipEl.textContent = fmt(paasIpCost) + ' Kč'
   const grandEl = $('totPaasGrand')
   if (grandEl) grandEl.textContent = fmt(paasGrandTotal) + ' Kč'
+  const paasDiscGb = $('paasDiscGb')
+  if (paasDiscGb) paasDiscGb.textContent = fmt(paasDiskCl) + ' GB × ' + fmt(PAAS_DISK_RATE_CZK) + ' Kč'
+  const paasDiscSumGb = $('paasDiscSumGb')
+  if (paasDiscSumGb) paasDiscSumGb.textContent = fmt(paasDiskCl) + ' GB × ' + fmt(PAAS_DISK_RATE_CZK) + ' Kč'
+  const paasDiscCost = $('paasDiscCost')
+  if (paasDiscCost) paasDiscCost.textContent = fmt(paasDiskCost) + ' Kč'
+  const paasDiscSum = $('paasDiscSum')
+  if (paasDiscSum) paasDiscSum.textContent = fmt(paasDiskCost) + ' Kč'
   const paasCommitSel = $('paasCommitSel')
   if (paasCommitSel) paasCommitSel.value = String(paasCommitment)
   const paasMRam = $('paasCloudRamMiB'); if (paasMRam) paasMRam.value = String(paasCloudRamMiB)
