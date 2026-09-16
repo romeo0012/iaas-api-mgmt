@@ -250,7 +250,7 @@ function renderCosting(costing) {
     ? '<div class="cost-disc-title">Disk podle tieru</div>' + disc.map(x =>
         `<div class="cost-disc-row">
            <span class="cd-label">${esc(x.label)}</span>
-           <span class="cd-gb">${fmt(x.diskGB)} GB × ${fmt(x.rate)} Kč</span>
+           <span class="cd-gb">${fmt(x.diskGB)} GB × ${fmt1(x.rate)} Kč</span>
            <span class="cd-cost">${fmt(x.diskCostCZK)} Kč</span>
          </div>`).join('')
     : ''
@@ -720,7 +720,7 @@ async function exportExcel() {
   const disc = c && c.diskByTier
   if (disc && disc.length) {
     pushRow(['Disk podle tieru'], 'note')
-    for (const x of disc) pushRow([x.label, `${fmt(x.diskGB)} GB × ${fmt(x.rate)} Kč`, fmtKc(x.diskCostCZK)], ['lbl', 'note', 'val'])
+    for (const x of disc) pushRow([x.label, `${fmt(x.diskGB)} GB × ${fmt1(x.rate)} Kč`, fmtKc(x.diskCostCZK)], ['lbl', 'note', 'val'])
     pushRow([], 'blank')
   }
 
