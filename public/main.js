@@ -93,6 +93,8 @@ function renderTopology(nodes, vlans) {
 
   const env = (nodes[0] && nodes[0]._envName) || state.envName
   $('envName').textContent = env || 'dev-kube.prg1paas.t-cloud.eu'
+  const topoName = $('topoName')
+  if (topoName) topoName.textContent = env || 'Servery'
 }
 
 function renderWan() {
