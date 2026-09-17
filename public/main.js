@@ -710,7 +710,8 @@ async function exportExcel() {
   const c = lastCosting
   const nodes = (c && c.perNode) || []
   const t = (c && c.totals) || {}
-  const env = (state.nodes[0] && state.nodes[0]._envName) || state.envName || 'topologie'
+  const envInput = $('envName')
+  const env = (envInput && envInput.value.trim()) || (state.nodes[0] && state.nodes[0]._envName) || state.envName
   const commit = (c && (c.commitmentLabel || (c.commitmentMonths + ' měs.'))) || ''
   const { utilization } = paasPct()
 
