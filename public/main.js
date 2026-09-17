@@ -732,7 +732,7 @@ async function exportExcel() {
     rowTags.push(tags)
   }
 
-  pushRow([env ? ('Prostředí: ' + env) : 'IaaS Architektura'], 'title')
+  pushRow([env || 'IaaS Architektura'], 'title')
   if (commit) pushRow(['Závazek: ' + commit], 'subtitle')
   pushRow([], 'blank')
 
