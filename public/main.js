@@ -521,7 +521,6 @@ $('gCancel').onclick = closeGroupModal
 // ---- toolbar ----
 
 $('addVmBtn').onclick = addVmModal
-$('recalcBtn').onclick = recalc
 
 // ---- topology save / load (localStorage) ----
 
