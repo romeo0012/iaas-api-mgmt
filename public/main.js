@@ -92,7 +92,8 @@ function renderTopology(nodes, vlans) {
   document.getElementById('addGroupBtn').onclick = addGroup
 
   const env = (nodes[0] && nodes[0]._envName) || state.envName
-  $('envName').textContent = env || 'dev-kube.prg1paas.t-cloud.eu'
+  const envInput = $('envName')
+  if (envInput) envInput.value = env || ''
   const topoName = $('topoName')
   if (topoName) topoName.textContent = env || 'Servery'
 }
@@ -285,7 +286,15 @@ function renderCosting(costing) {
   if (ipItem) ipItem.hidden = !(costing.publicIpCZK || 0)
   const rbEl = $('totRbIaaS')
   if (rbEl) rbEl.textContent = fmt(costing.remoteBackupCZK || 0) + ' Kč'
-  const rbCap = $('rbCapacity')
+const envNameInput = $('envName')
+if (envNameInput) envNameInput.addEventListener('input', () => {
+  state.envName = envNameInput.value.trim()
+  state.nodes = (state.nodes || []).map(n => { const c = { ...n }; delete c._envName; return c })
+  const topoName = $('topoName')
+  if (topoName) topoName.textContent = state.envName || 'Servery'
+})
+
+const rbCap = $('rbCapacity')
   if (rbCap && String(rbCap.value) !== String(costing.remoteBackupCapacityGB)) {
     rbCap.value = costing.remoteBackupAuto ? '' : String(costing.remoteBackupCapacityGB || 0)
   }
