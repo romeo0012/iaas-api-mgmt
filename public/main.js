@@ -817,7 +817,7 @@ async function exportExcel() {
   // --- Poznámky: co PaaS přináší navíc oproti IaaS ---
   pushRow([], 'blank')
   pushRow(['Poznámky — co PaaS přináší navíc oproti IaaS (zdůvodnění vyšší ceny)'], 'note')
-  pushRow(['IaaS = surový výkon a plná kontrola, ale veškerý provoz a údržba je na vás. PaaS = vyšší cena, za kterou dostáváte méně práce a větší robustnost:'], 'note')
+  pushRow(['IaaS = surový výkon, plná kontrola a vysoká dostupnost, ale veškerý provoz a údržba je na vás. PaaS = vyšší cena, za kterou dostáváte méně práce a větší robustnost:'], 'note')
   for (const b of PAAS_BENEFITS) pushRow(['• ' + b], 'note')
 
   // --- Topologie jako obrázek vložený do binárního .xlsx ---
