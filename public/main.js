@@ -95,7 +95,7 @@ function renderTopology(nodes, vlans) {
   const envInput = $('envName')
   if (envInput) envInput.value = env || ''
   const topoName = $('topoName')
-  if (topoName) topoName.textContent = env || 'Servery'
+  if (topoName) topoName.textContent = env
 }
 
 function renderWan() {
@@ -291,7 +291,7 @@ if (envNameInput) envNameInput.addEventListener('input', () => {
   state.envName = envNameInput.value.trim()
   state.nodes = (state.nodes || []).map(n => { const c = { ...n }; delete c._envName; return c })
   const topoName = $('topoName')
-  if (topoName) topoName.textContent = state.envName || 'Servery'
+  if (topoName) topoName.textContent = state.envName
 })
 
 const rbCap = $('rbCapacity')
