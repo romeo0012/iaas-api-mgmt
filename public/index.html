@@ -26,15 +26,15 @@
       <h2>Servery</h2>
       <div class="server-toolbar">
         <button class="btn" id="addVmBtn">+ Přidat VM</button>
-        <button class="btn" id="importBtn">Import PaaS → IaaS</button>
-        <button class="btn" id="exportBtn">Export PaaS</button>
-        <button class="btn" id="saveTopoBtn">Uložit topologii</button>
-        <button class="btn" id="loadTopoBtn">Načíst topologii</button>
-        <button class="btn" id="dlTopoBtn">Stáhnout topologii</button>
-        <button class="btn btn-primary" id="xlBtn">Stáhnout Excel</button>
-        <button class="btn" id="ulTopoBtn">Nahrát topologii</button>
+        <button class="btn" id="importBtn">Import topologie z PaaS → IaaS</button>
+        <button class="btn" id="exportBtn">Export topologie do PaaS</button>
+        <button class="btn" id="saveTopoBtn">Uložit aktuální topologii</button>
+        <button class="btn" id="loadTopoBtn">Načíst uloženou topologii</button>
+        <button class="btn" id="dlTopoBtn">Stáhnout aktuální topologii jako json</button>
+        <button class="btn btn-primary" id="xlBtn">Stáhnout aktuální stránku jako Excel</button>
+        <button class="btn" id="ulTopoBtn">Nahrát topologii ve formátu json</button>
         <input type="file" id="ulTopoFile" accept=".json,application/json" hidden>
-        <button class="btn btn-primary" id="recalcBtn">Přepočítat</button>
+        <button class="btn btn-primary" id="recalcBtn">Přepočítat cenu</button>
         <button class="btn btn-deploy" id="deployBtn">Deploy do IaaS</button>
       </div>
       <div class="topo-status" id="topoStatus"></div>
