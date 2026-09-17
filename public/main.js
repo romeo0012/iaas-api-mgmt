@@ -194,7 +194,7 @@ const PAAS_BENEFITS = [
   'Bez správy OS a middlewaru — platforma řeší instalace, záplaty a updaty (u IaaS je OS, runtime i jejich patche plně na vás).',
   'Automatické škálování a pay-as-you-go — vertikální cloudlety i horizontální repliky dle zátěže; neplatíte trvale za rezervovaný výkon.',
   'Vysoká dostupnost a self-healing — zdravotní kontroly, automatický restart a failover uzlů.',
-  'Automatické zálohy a obnova jedním klikem.',
+  'Automatické zálohy a obnova jedním klikem, klonování a výroba prostředí jedním klikem.',
   'Integrované CI/CD (Git/SVN deploy), kontejnery a rolling update bez výpadku (staging → produkce).',
   'Managed síť, VLAN, veřejné IP, DNS a SSL bez ruční konfigurace.',
   'Monitoring, metering a 24/7 SLA podpora v ceně.',
