@@ -189,6 +189,23 @@ function commitLabel(cm) {
   return cm === 0 ? 'Bez závazku' : cm + ' měs.'
 }
 
+// Co PaaS přináší navíc oproti IaaS (zdůvodnění vyšší ceny) — web i Excel.
+const PAAS_BENEFITS = [
+  'Bez správy OS a middlewaru — platforma řeší instalace, záplaty a updaty (u IaaS je OS, runtime i jejich patche plně na vás).',
+  'Automatické škálování a pay-as-you-go — vertikální cloudlety i horizontální repliky dle zátěže; neplatíte trvale za rezervovaný výkon.',
+  'Vysoká dostupnost a self-healing — zdravotní kontroly, automatický restart a failover uzlů.',
+  'Automatické zálohy a obnova jedním klikem.',
+  'Integrované CI/CD (Git/SVN deploy), kontejnery a rolling update bez výpadku (staging → produkce).',
+  'Managed síť, VLAN, veřejné IP, DNS a SSL bez ruční konfigurace.',
+  'Monitoring, metering a 24/7 SLA podpora v ceně.',
+  'Rychlý time-to-market — prostředí vznikne za minuty místo návrhu a údržby VM infrastruktury.',
+]
+function renderPaasBenefits() {
+  const ul = document.getElementById('paasBenefits')
+  if (ul) ul.innerHTML = PAAS_BENEFITS.map(x => '<li>' + esc(x) + '</li>').join('')
+}
+renderPaasBenefits()
+
 function renderCosting(costing) {
   lastCosting = costing
   const t = costing.totals
@@ -785,6 +802,12 @@ async function exportExcel() {
       fmt(Math.round(cl * utilization)), fmtKc(cl * expEffRate)],
       { base: 'tcell', cells: { 9: 'tcellBold', 11: 'tcellBold' } })
   }
+
+  // --- Poznámky: co PaaS přináší navíc oproti IaaS ---
+  pushRow([], 'blank')
+  pushRow(['Poznámky — co PaaS přináší navíc oproti IaaS (zdůvodnění vyšší ceny)'], 'note')
+  pushRow(['IaaS = surový výkon a plná kontrola, ale veškerý provoz a údržba je na vás. PaaS = vyšší cena, za kterou dostáváte méně práce a větší robustnost:'], 'note')
+  for (const b of PAAS_BENEFITS) pushRow(['• ' + b], 'note')
 
   // --- Topologie jako obrázek vložený do binárního .xlsx ---
   let topoPng = null

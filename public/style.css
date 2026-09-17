@@ -316,6 +316,11 @@ body {
 .cost-summary .cost-item:not(.cost-total) > span:last-child { color: #6b4fc0; }
 
 .cost-rate-note { font-size: 12px; color: #666; margin-bottom: 10px; }
+.cost-notes { margin-top: 14px; padding: 12px 14px; border: 1px solid #e6e0f5; border-radius: 8px; background: #faf8ff; }
+.cost-notes-title { font-size: 13px; font-weight: 700; color: #4a3b8f; margin-bottom: 6px; }
+.cost-notes-intro { font-size: 12px; color: #556; margin-bottom: 8px; }
+.cost-notes ul { margin: 0; padding-left: 18px; }
+.cost-notes li { font-size: 12px; color: #333; line-height: 1.5; margin-bottom: 3px; }
 
 .cost-paas {
   margin-top: 12px;
