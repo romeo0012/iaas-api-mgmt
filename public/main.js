@@ -1366,7 +1366,13 @@ const bindPaasParam = (input, setter, min) => {
   input.oninput = apply
   input.onchange = apply
 }
-bindPaasParam($('paasCloudRamMiB'), v => { paasCloudRamMiB = v }, 1)
+const extDef = (typeof window.IaaS_PAAS_EXT_GB === 'number' && Number.isFinite(window.IaaS_PAAS_EXT_GB) && window.IaaS_PAAS_EXT_GB >= 0) ? window.IaaS_PAAS_EXT_GB : 0
+  const extEl = $('paasExtGb')
+  if (extEl) {
+    paasExtGb = extDef
+    extEl.value = String(extDef)
+  }
+  bindPaasParam($('paasCloudRamMiB'), v => { paasCloudRamMiB = v }, 1)
 bindPaasParam($('paasCloudCpuMHz'), v => { paasCloudCpuMHz = v }, 1)
 bindPaasParam($('paasExtGb'), v => { paasExtGb = v }, 0)
 

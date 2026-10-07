@@ -52,7 +52,8 @@ app.use(BASE_PATH, (req, res, next) => {
       `window.PAAS_UTILIZATION=${isFinite(paasUtilPct) && paasUtilPct >= 10 ? Math.min(paasUtilPct, 100) : paasCfg.utilizationPct};` +
       `window.PAAS_CONFIG=${JSON.stringify(paasCfg)};` +
       `window.OFFER_IAAS_CAPACITY_MIB=${Number(process.env.OFFER_IAAS_CAPACITY_MIB) || 0};` +
-      `window.OFFER_PAAS_CAPACITY_GB=${Number(process.env.OFFER_PAAS_CAPACITY_GB) || 0};</script>`
+      `window.OFFER_PAAS_CAPACITY_GB=${Number(process.env.OFFER_PAAS_CAPACITY_GB) || 0};` +
+      `window.IaaS_PAAS_EXT_GB=${Number(process.env.IaaS_PAAS_EXT_GB) || 0};</script>`
     res.send(html.replace('</head>', baseTag + script + '</head>'))
   })
 })
