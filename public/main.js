@@ -973,6 +973,9 @@ async function exportOfferExcel() {
   pushRow(['CENOVÁ NABÍDKA'], 'title')
   pushRow(['Číslo nabídky: ____________ · Vystaveno: ' + today + ' · Platnost nabídky: 30 dní'], 'subtitle')
   pushRow(['Předmět: Cloudová infrastruktura — ' + (env || 'T-Business Cloud') + ' · Závazek: ' + commit], 'subtitle')
+  const offerIaasMib = (typeof window.OFFER_IAAS_CAPACITY_MIB === 'number' && window.OFFER_IAAS_CAPACITY_MIB > 0) ? window.OFFER_IAAS_CAPACITY_MIB : 500
+  const offerPaasGb = (typeof window.OFFER_PAAS_CAPACITY_GB === 'number' && window.OFFER_PAAS_CAPACITY_GB > 0) ? window.OFFER_PAAS_CAPACITY_GB : 5000
+  pushRow(['Parametry: IaaS kapacita ' + offerIaasMib + ' MiB · PaaS kapacita ' + offerPaasGb + ' GB'], 'subtitle')
   pushRow([], 'blank')
   pushRow(['Zákazník:  ___________________________________________________________________'], 'note')
   pushRow(['IČO / DIČ / Kontakt:  ________________________________________________________'], 'note')
