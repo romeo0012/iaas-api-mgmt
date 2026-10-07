@@ -139,7 +139,7 @@ Postup výpočtu (server `lib/pricing.js`, klientsky zrcadleno v `public/main.js
 - **Využití (utilizace)**: `paasUtil` (default 40 %, env `IaaS_PAAS_UTILIZATION`, UI slider 10–100 %) určuje počet **dynamických** cloudletů `ceil(N × utilization)`; rezervované se platí vždy beze změny. CPU/RAM v sekci se zobrazují na utilizaci (využité kapacity).
 - **Další položky Virtuozzo** (přičítají se k PaaS celkem, neovlivněné utilizací):
   - **Disk PaaS** = Σ diskGB všech VM × **sazba IaaS tieru „Standard" dle závazku** (bez závazku 1.95 / 12m 1.35 / 24m 1.28 / 36m 1.20 Kč/GB/měs); `IaaS_PAAS_DISK_RATE_CZK` ji může přebít plochou sazbou;
-  - **Public IP** = **120.01 Kč/IP/měs** (0.1644 Kč/h × 730), jen pokud je v topologii firewall (skupina `opnsense`);
+  - **Public IP** = počet IP (IaaS `publicIpCount`, 0–10, jen s firewallem) × **120,01 Kč/IP/měs** (0,1644 Kč/h × 730 h);
   - **External traffic** = zadané GB/měs (`#paasExtGb`, výchozí 0) × cena/GB dle pásma (Virtuozzo): ≤5,11 TB 0,3098 · ≤10,23 TB 0,2943 · ≤51,19 TB 0,2788 · ≤102,39 TB 0,2634 · >102,4 TB 0,2479 Kč/GB. Pásma/ceny přes `IaaS_PAAS_EXT_LIMITS_GB` + `IaaS_PAAS_EXT_RATES`.
 - **Úhrn „Cena PaaS celkem"** = cena cloudletů (R + D) + Disk PaaS + Public IP.
 - **Poměr závazku (PaaS)**: `paasCommitRatio(cm) = sazbaCPU(cm) / sazbaCPU(12m)`; násobí cenu cloudletů (stejná logika jako u IaaS: env override jen pro defaultní závazek). PaaS závazek se volí nezávisle (`paasCommitSel`).

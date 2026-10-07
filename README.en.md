@@ -138,7 +138,7 @@ An informational section in the UI — **does not affect the IaaS price**. It mo
 - **Utilization**: `paasUtil` (default 40 %, env `IaaS_PAAS_UTILIZATION`, UI slider 10–100 %) determines the number of **dynamic** cloudlets `ceil(N × utilization)`; the reserved ones are always paid unchanged. The CPU/RAM figures shown in the section reflect utilization (actually used capacity).
 - **Other Virtuozzo line items** (added to the PaaS total, not affected by utilization):
   - **PaaS disk** = Σ diskGB of all VMs × **IaaS "Standard" tier rate by commitment** (no commitment 1.95 / 12m 1.35 / 24m 1.28 / 36m 1.20 CZK/GB/month); `IaaS_PAAS_DISK_RATE_CZK` can override with a flat rate;
-  - **Public IP** = **120.01 CZK/IP/month** (0.1644 CZK/h × 730), only when the topology contains a firewall (`opnsense` group);
+  - **Public IP** = IP count (IaaS `publicIpCount`, 0–10, firewall only) × **120.01 CZK/IP/month** (0.1644 CZK/h × 730 h);
   - **External traffic** = entered GB/month (`#paasExtGb`, default 0) × price/GB per band (Virtuozzo): ≤5.11 TB 0.3098 · ≤10.23 TB 0.2943 · ≤51.19 TB 0.2788 · ≤102.39 TB 0.2634 · >102.4 TB 0.2479 CZK/GB. Bands/prices via `IaaS_PAAS_EXT_LIMITS_GB` + `IaaS_PAAS_EXT_RATES`.
 - **"Total PaaS price"** = cloudlet price (R + D) + PaaS disk + Public IP.
 - **Commitment ratio (PaaS)**: `paasCommitRatio(cm) = cpuRate(cm) / cpuRate(12m)`; it multiplies the cloudlet price (same logic as IaaS — an env override applies only to the default commitment). The PaaS commitment is chosen independently (`paasCommitSel`).

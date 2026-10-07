@@ -245,7 +245,8 @@ function renderCosting(costing) {
     : 0
   const paasDiskCost = paasDiskCl * paasDiskRate(paasCommitment)
   const hasOpn = Array.isArray(costing.perNode) && costing.perNode.some(n => n.group === 'opnsense')
-  const paasIpCost = hasOpn ? PAAS_PUBLIC_IP_RATE_CZK : 0
+  const paasIpCount = hasOpn ? (costing.publicIpCount || 0) : 0
+  const paasIpCost = paasIpCount * PAAS_PUBLIC_IP_RATE_CZK
   const extGb = Number.isFinite(paasExtGb) && paasExtGb > 0 ? paasExtGb : 0
   const paasExtRate = paasExtRateFor(extGb)
   const paasExtCost = extGb * paasExtRate
@@ -262,7 +263,12 @@ function renderCosting(costing) {
   const diskEl = $('totDiskPaaS')
   if (diskEl) diskEl.textContent = fmt(paasDiskCost) + ' Kč'
   const ipEl = $('totPublicIP')
-  if (ipEl) ipEl.textContent = fmt(paasIpCost) + ' Kč'
+  if (ipEl) {
+    ipEl.textContent = fmt(paasIpCost) + ' Kč'
+    ipEl.title = paasIpCount > 0
+      ? (paasIpCount + ' IP × ' + fmt1(PAAS_PUBLIC_IP_RATE_CZK) + ' Kč/měs (0,1644 Kč/h, 730 h)')
+      : 'počet IP = IaaS Public IP (0)'
+  }
   const extEl = $('totExtTraffic')
   if (extEl) {
     extEl.textContent = fmt(paasExtCost) + ' Kč'
@@ -820,7 +826,8 @@ async function exportExcel() {
   const paasDiskRate_ = paasDiskRate(paasCommitment)
   const paasDisk = paasDiskGB * paasDiskRate_
   const hasOp = nodes.some(n => n.group === 'opnsense')
-  const paasIp = hasOp ? PAAS_PUBLIC_IP_RATE_CZK : 0
+  const xlIpCount = t.publicIpCount || 0
+  const paasIp = hasOp ? xlIpCount * PAAS_PUBLIC_IP_RATE_CZK : 0
   pushRow(['CPU', fmt1((t.cpuGHz || 0) * utilization) + ' GHz'], ['lbl', 'val'])
   pushRow(['RAM', fmt1((t.ramGB || 0) * utilization) + ' GiB'], ['lbl', 'val'])
   pushRow(['Cloudlety rezervované (15 %)', fmt(paasResCl)], ['lbl', 'val'])
@@ -828,7 +835,7 @@ async function exportExcel() {
   pushRow(['Cena cloudletů (R + D)', fmtKc(paasCloudCost)], ['lbl', 'val'])
   pushRow(['Cena / cloudlet (průměr)', fmtKc(paasTotalCl > 0 ? paasCloudCost / paasTotalCl : 0)], ['lbl', 'val'])
   pushRow(['Disk PaaS (' + fmt(paasDiskGB) + ' GB × ' + fmt1(paasDiskRate_) + ' Kč)', fmtKc(paasDisk)], ['lbl', 'val'])
-  pushRow(['Public IP', fmtKc(paasIp)], ['lbl', 'val'])
+  pushRow(['Public IP (' + xlIpCount + ' × ' + fmt1(PAAS_PUBLIC_IP_RATE_CZK) + ' Kč)', fmtKc(paasIp)], ['lbl', 'val'])
   const xlExtGb = Number.isFinite(paasExtGb) && paasExtGb > 0 ? paasExtGb : 0
   const xlExtRate = paasExtRateFor(xlExtGb)
   const xlExtCost = xlExtGb * xlExtRate
