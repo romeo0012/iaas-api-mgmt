@@ -28,6 +28,8 @@ let PAAS_RESERVATION_PCT = 15 // rezervované cloudlety = vždy placené minimum
 let PAAS_DISK_RATE_CZK = null // null = sazba IaaS tieru "Standard" dle závazku; explicitní IaaS_PAAS_DISK_RATE_CZK ji přebije
 let PAAS_STD_DISK_RATES = null // { 0: 1.95, 12: 1.35, 24: 1.28, 36: 1.20 } — z window.PAAS_CONFIG
 let PAAS_PUBLIC_IP_RATE_CZK = 120.01 // cena / IP / měsíc (0.1644 Kč/h × 730)
+let PAAS_EXT_BANDS = [{ to: 5110, rate: 0.3098 }, { to: 10230, rate: 0.2943 }, { to: 51190, rate: 0.2788 }, { to: 102390, rate: 0.2634 }, { to: Infinity, rate: 0.2479 }]
+let paasExtGb = 0 // externí provoz za měsíc (GB)
 const _pc = window.PAAS_CONFIG
 if (_pc && _pc.utilizationPct >= 10) paasUtil = Math.min(_pc.utilizationPct, 100)
 if (_pc) {
@@ -38,6 +40,9 @@ if (_pc) {
   if (_pc.diskRateCzk > 0) PAAS_DISK_RATE_CZK = _pc.diskRateCzk
   if (_pc.standardDiskRates) PAAS_STD_DISK_RATES = _pc.standardDiskRates
   if (_pc.publicIpRateCzk > 0) PAAS_PUBLIC_IP_RATE_CZK = _pc.publicIpRateCzk
+  if (Array.isArray(_pc.extTrafficBands) && _pc.extTrafficBands.length) {
+    PAAS_EXT_BANDS = _pc.extTrafficBands.map(b => ({ to: b.to == null ? Infinity : Number(b.to), rate: Number(b.rate) }))
+  }
 }
 let paasCommitment = 12
 let paasCommitCpuRates = {}
@@ -188,6 +193,13 @@ function paasDiskRate(cm) {
   return 1.35
 }
 
+// Cena/GB externího provozu dle objemu (Virtuozzo pásma).
+function paasExtRateFor(gb) {
+  if (gb <= 0) return 0
+  for (const b of PAAS_EXT_BANDS) if (gb <= b.to) return b.rate
+  return PAAS_EXT_BANDS.length ? PAAS_EXT_BANDS[PAAS_EXT_BANDS.length - 1].rate : 0
+}
+
 function commitLabel(cm) {
   return cm === 0 ? 'Bez závazku' : cm + ' měs.'
 }
@@ -234,7 +246,10 @@ function renderCosting(costing) {
   const paasDiskCost = paasDiskCl * paasDiskRate(paasCommitment)
   const hasOpn = Array.isArray(costing.perNode) && costing.perNode.some(n => n.group === 'opnsense')
   const paasIpCost = hasOpn ? PAAS_PUBLIC_IP_RATE_CZK : 0
-  const paasGrandTotal = paasCloudletCost + paasDiskCost + paasIpCost
+  const extGb = Number.isFinite(paasExtGb) && paasExtGb > 0 ? paasExtGb : 0
+  const paasExtRate = paasExtRateFor(extGb)
+  const paasExtCost = extGb * paasExtRate
+  const paasGrandTotal = paasCloudletCost + paasDiskCost + paasIpCost + paasExtCost
   const el = $('totCloudletsR')
   if (el) el.textContent = fmt(paasReservedCl)
   const elD = $('totCloudletsD')
@@ -248,6 +263,11 @@ function renderCosting(costing) {
   if (diskEl) diskEl.textContent = fmt(paasDiskCost) + ' Kč'
   const ipEl = $('totPublicIP')
   if (ipEl) ipEl.textContent = fmt(paasIpCost) + ' Kč'
+  const extEl = $('totExtTraffic')
+  if (extEl) {
+    extEl.textContent = fmt(paasExtCost) + ' Kč'
+    extEl.title = extGb > 0 ? (fmt(extGb) + ' GB × ' + fmt1(paasExtRate) + ' Kč/GB') : 'zadej GB/měs pro výpočet'
+  }
   const grandEl = $('totPaasGrand')
   if (grandEl) grandEl.textContent = fmt(paasGrandTotal) + ' Kč'
   const paasDiscSumGb = $('paasDiscSumGb')
@@ -798,7 +818,11 @@ async function exportExcel() {
   pushRow(['Cena / cloudlet (průměr)', fmtKc(paasTotalCl > 0 ? paasCloudCost / paasTotalCl : 0)], ['lbl', 'val'])
   pushRow(['Disk PaaS (' + fmt(paasDiskGB) + ' GB × ' + fmt1(paasDiskRate_) + ' Kč)', fmtKc(paasDisk)], ['lbl', 'val'])
   pushRow(['Public IP', fmtKc(paasIp)], ['lbl', 'val'])
-  pushRow(['Cena (PaaS) celkem', fmtKc(paasCloudCost + paasDisk + paasIp)], ['lbl', 'total'])
+  const xlExtGb = Number.isFinite(paasExtGb) && paasExtGb > 0 ? paasExtGb : 0
+  const xlExtRate = paasExtRateFor(xlExtGb)
+  const xlExtCost = xlExtGb * xlExtRate
+  pushRow(['External traffic (' + fmt(xlExtGb) + ' GB × ' + fmt1(xlExtRate) + ' Kč)', fmtKc(xlExtCost)], ['lbl', 'val'])
+  pushRow(['Cena (PaaS) celkem', fmtKc(paasCloudCost + paasDisk + paasIp + xlExtCost)], ['lbl', 'total'])
   pushRow([], 'blank')
 
   const header = ['VM', 'Skupina', 'CPU GHz', 'RAM GiB', 'Disk GB', 'Tier', 'CPU', 'RAM', 'Disk', 'Cena IaaS', 'Cloudlety', 'Cena PaaS']
@@ -1205,6 +1229,7 @@ const bindPaasParam = (input, setter, min) => {
 }
 bindPaasParam($('paasCloudRamMiB'), v => { paasCloudRamMiB = v }, 1)
 bindPaasParam($('paasCloudCpuMHz'), v => { paasCloudCpuMHz = v }, 1)
+bindPaasParam($('paasExtGb'), v => { paasExtGb = v }, 0)
 
 const paasRange = $('paasUtilRange')
 if (paasRange) {

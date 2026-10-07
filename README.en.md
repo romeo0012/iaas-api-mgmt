@@ -56,6 +56,8 @@ Copy from the template: `cp .env.example .env`
 | `IaaS_PAAS_BANDS` | band upper limits for cloudlets (the final band auto-extends to ∞) | `16,32,64,128` |
 | `IaaS_PAAS_DISK_RATE_CZK` | PaaS disk **override** (flat CZK/GB/month); empty = IaaS "Standard" tier rate by commitment | *(empty)* |
 | `IaaS_PAAS_PUBLIC_IP_RATE_CZK` | PaaS public IP (CZK/IP/month, firewall only) | `120.01` |
+| `IaaS_PAAS_EXT_RATES` | External traffic: CZK/GB prices per band (Virtuozzo) | `0.3098,0.2943,0.2788,0.2634,0.2479` |
+| `IaaS_PAAS_EXT_LIMITS_GB` | External traffic: band upper limits in GB (last = ∞) | `5110,10230,51190,102390` |
 | `TCLOUD_BASE_URL` | T-Cloud API base | `https://prg1.t-cloud.eu/api/2.0` |
 | `TCLOUD_REFERER` | Referer header | `https://prg1.t-cloud.eu` |
 | `TCLOUD_USERNAME` / `TCLOUD_PASSWORD` / `TCLOUD_OTP_SECRET` | deployment credentials (fallback) | empty |
@@ -137,7 +139,7 @@ An informational section in the UI — **does not affect the IaaS price**. It mo
 - **Other Virtuozzo line items** (added to the PaaS total, not affected by utilization):
   - **PaaS disk** = Σ diskGB of all VMs × **IaaS "Standard" tier rate by commitment** (no commitment 1.95 / 12m 1.35 / 24m 1.28 / 36m 1.20 CZK/GB/month); `IaaS_PAAS_DISK_RATE_CZK` can override with a flat rate;
   - **Public IP** = **120.01 CZK/IP/month** (0.1644 CZK/h × 730), only when the topology contains a firewall (`opnsense` group);
-  - **external traffic** is not calculated (no input in the topology).
+  - **External traffic** = entered GB/month (`#paasExtGb`, default 0) × price/GB per band (Virtuozzo): ≤5.11 TB 0.3098 · ≤10.23 TB 0.2943 · ≤51.19 TB 0.2788 · ≤102.39 TB 0.2634 · >102.4 TB 0.2479 CZK/GB. Bands/prices via `IaaS_PAAS_EXT_LIMITS_GB` + `IaaS_PAAS_EXT_RATES`.
 - **"Total PaaS price"** = cloudlet price (R + D) + PaaS disk + Public IP.
 - **Commitment ratio (PaaS)**: `paasCommitRatio(cm) = cpuRate(cm) / cpuRate(12m)`; it multiplies the cloudlet price (same logic as IaaS — an env override applies only to the default commitment). The PaaS commitment is chosen independently (`paasCommitSel`).
 - **Effective average rate**: `effRate = cloudletCost(N) / N` — per-VM rows use it so the per-row sum matches the total price; per-VM "PaaS price" = `cl × effRate`.

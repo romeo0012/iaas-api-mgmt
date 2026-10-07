@@ -124,6 +124,9 @@
           <label title="Virtuozzo pásma dynamických cloudletů (Kč/cloudlet/měs)">Dynamic
             <span class="paas-band-note">148,26 (1–16) · 144,54 (17–32) · 140,82 (33–64) · 137,09 (65–128) · 133,44 (129+) Kč</span>
           </label>
+          <label title="Virtuozzo cena externího provozu za měsíc dle objemu: ≤5,11 TB 0,3098 Kč/GB · ≤10,23 TB 0,2943 · ≤51,19 TB 0,2788 · ≤102,39 TB 0,2634 · >102,4 TB 0,2479 Kč/GB">External traffic / měsíc
+            <input type="number" id="paasExtGb" value="0" min="0" step="1"> GB
+          </label>
         </div>
         <div class="cost-paas-level">
           <div class="cost-item"><span class="cost-label">CPU</span><span id="totCloudCpuUtil">0 GHz</span></div>
@@ -136,6 +139,7 @@
           <div class="cost-item"><span class="cost-label">Cena / cloudlet</span><span id="totCloudPerClUtil">0 Kč</span></div>
           <div class="cost-item"><span class="cost-label">Disk</span><span id="totDiskPaaS" title="sazba IaaS tieru Standard dle závazku">0 Kč</span></div>
           <div class="cost-item"><span class="cost-label">Public IP</span><span id="totPublicIP" title="120,01 Kč / IP / měsíc (jen s firewallem)">0 Kč</span></div>
+          <div class="cost-item"><span class="cost-label">Ext. traffic</span><span id="totExtTraffic" title="cena/GB dle objemu za měsíc">0 Kč</span></div>
           <div class="cost-item cost-total"><span class="cost-label">Cena (PaaS)</span><span id="totPaasGrand">0 Kč</span></div>
         </div>
         <div class="cost-disc">

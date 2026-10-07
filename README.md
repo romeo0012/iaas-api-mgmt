@@ -56,6 +56,8 @@ Kopíruj ze šablony: `cp .env.example .env`
 | `IaaS_PAAS_BANDS` | horní hranice pásem cloudletů (poslední pásmo se automaticky doplní na ∞) | `16,32,64,128` |
 | `IaaS_PAAS_DISK_RATE_CZK` | PaaS disk **override** (plochá Kč/GB/měs); prázdné = sazba IaaS tieru „Standard" dle závazku | *(prázdné)* |
 | `IaaS_PAAS_PUBLIC_IP_RATE_CZK` | PaaS Public IP (Kč/IP/měs, jen s firewallem) | `120.01` |
+| `IaaS_PAAS_EXT_RATES` | External traffic: ceny Kč/GB dle pásma (Virtuozzo) | `0.3098,0.2943,0.2788,0.2634,0.2479` |
+| `IaaS_PAAS_EXT_LIMITS_GB` | External traffic: horní hranice pásem v GB (poslední = ∞) | `5110,10230,51190,102390` |
 | `TCLOUD_BASE_URL` | T-Cloud API base | `https://prg1.t-cloud.eu/api/2.0` |
 | `TCLOUD_REFERER` | Referer hlavička | `https://prg1.t-cloud.eu` |
 | `TCLOUD_USERNAME` / `TCLOUD_PASSWORD` / `TCLOUD_OTP_SECRET` | přihlašovací údaje pro nasazení (fallback) | prázdné |
@@ -135,7 +137,7 @@ Postup výpočtu (server `lib/pricing.js`, klientsky zrcadleno v `public/main.js
 - **Další položky Virtuozzo** (přičítají se k PaaS celkem, neovlivněné utilizací):
   - **Disk PaaS** = Σ diskGB všech VM × **sazba IaaS tieru „Standard" dle závazku** (bez závazku 1.95 / 12m 1.35 / 24m 1.28 / 36m 1.20 Kč/GB/měs); `IaaS_PAAS_DISK_RATE_CZK` ji může přebít plochou sazbou;
   - **Public IP** = **120.01 Kč/IP/měs** (0.1644 Kč/h × 730), jen pokud je v topologii firewall (skupina `opnsense`);
-  - **External traffic** se nekalkuluje (nemá v topologii vstup).
+  - **External traffic** = zadané GB/měs (`#paasExtGb`, výchozí 0) × cena/GB dle pásma (Virtuozzo): ≤5,11 TB 0,3098 · ≤10,23 TB 0,2943 · ≤51,19 TB 0,2788 · ≤102,39 TB 0,2634 · >102,4 TB 0,2479 Kč/GB. Pásma/ceny přes `IaaS_PAAS_EXT_LIMITS_GB` + `IaaS_PAAS_EXT_RATES`.
 - **Úhrn „Cena PaaS celkem"** = cena cloudletů (R + D) + Disk PaaS + Public IP.
 - **Poměr závazku (PaaS)**: `paasCommitRatio(cm) = sazbaCPU(cm) / sazbaCPU(12m)`; násobí cenu cloudletů (stejná logika jako u IaaS: env override jen pro defaultní závazek). PaaS závazek se volí nezávisle (`paasCommitSel`).
 - **Efektivní průměrná sazba**: `effRate = cenaCloudletů(N) / N` — per-VM řádky ji používají, aby součet seděl na celkovou cenu; per-VM „Cena PaaS" = `cl × effRate`.
