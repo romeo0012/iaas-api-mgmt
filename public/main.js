@@ -1245,8 +1245,11 @@ function loadArch(data) {
     const c = (data.costing.perNode && data.costing.perNode[i]) || {}
     return { ...n, idx: String(i), _cost: c.totalFormatted }
   })
+  if (data.costing && data.costing.internetMbps != null) state.internetMbps = Math.round(Number(data.costing.internetMbps) || 0)
   state.vlans = data.computed.vlans || {}
   state.groups = data.computed.groups || {}
+  const net = $('internetSel')
+  if (net) net.value = String(state.internetMbps)
   renderTopology(state.nodes, state.vlans)
   renderCosting(data.costing)
   renderWan()

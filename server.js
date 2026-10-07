@@ -17,6 +17,8 @@ const deployLib = require('./lib/deploy')
 const tcloud = require('./lib/tcloud')
 
 const DEFAULT_TOPO_FILE = path.join(__dirname, 'default.topo.json')
+const defNetRaw = Number(process.env.IaaS_DEFAULT_INTERNET_MBPS)
+const defaultInternetMbps = [0, 100, 500, 1000].includes(defNetRaw) ? defNetRaw : 500
 
 // Startup default topology: loaded from default.topo.json (same format as the
 // UI's .topo.json export) when present, otherwise the built-in default.
@@ -27,13 +29,16 @@ function defaultArch() {
       if (cfg && Array.isArray(cfg.nodes)) {
         cfg.groups = cfg.groups || {}
         cfg.vlans = cfg.vlans || {}
+        if (cfg.internetMbps == null) cfg.internetMbps = defaultInternetMbps
         return cfg
       }
     }
   } catch (e) {
     console.warn('default.topo.json: ' + e.message)
   }
-  return architecture.defaultArchitecture()
+  const arch = architecture.defaultArchitecture()
+  if (arch.internetMbps == null) arch.internetMbps = defaultInternetMbps
+  return arch
 }
 
 app.use(express.json({ limit: '10mb' }))
@@ -53,7 +58,8 @@ app.use(BASE_PATH, (req, res, next) => {
       `window.PAAS_CONFIG=${JSON.stringify(paasCfg)};` +
       `window.OFFER_IAAS_CAPACITY_MIB=${Number(process.env.OFFER_IAAS_CAPACITY_MIB) || 0};` +
       `window.OFFER_PAAS_CAPACITY_GB=${Number(process.env.OFFER_PAAS_CAPACITY_GB) || 0};` +
-      `window.IaaS_PAAS_EXT_GB=${Number(process.env.IaaS_PAAS_EXT_GB) || 0};</script>`
+      `window.IaaS_PAAS_EXT_GB=${Number(process.env.IaaS_PAAS_EXT_GB) || 0};` +
+      `window.IaaS_DEFAULT_INTERNET_MBPS=${defaultInternetMbps};</script>`
     res.send(html.replace('</head>', baseTag + script + '</head>'))
   })
 })
