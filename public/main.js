@@ -978,7 +978,7 @@ async function exportOfferExcel() {
   pushRow(['IČO / DIČ / Kontakt:  ________________________________________________________'], 'note')
   pushRow([], 'blank')
 
-  pushRow(['IaaS — měsíční náklady (T-Business Business Cloud, Resource Pool)'], 'secIaaS')
+  pushRow(['IaaS — měsíční náklady'], 'secIaaS')
   pushRow(['CPU', fmt1(t.cpuGHz || 0) + ' GHz × ' + fmt1(c.rateCpuGHz) + ' Kč/GHz', fmtKc(t.cpuCostCZK)], ['lbl', 'note', 'val'])
   pushRow(['RAM', fmt1(t.ramGB || 0) + ' GiB × ' + fmt1(c.rateRamGB) + ' Kč/GB', fmtKc(t.ramCostCZK)], ['lbl', 'note', 'val'])
   pushRow(['Disk', fmt1(t.diskGB || 0) + ' GB (dle výkonnostního tieru každého VM)', fmtKc(t.diskCostCZK)], ['lbl', 'note', 'val'])
@@ -1001,7 +1001,7 @@ async function exportOfferExcel() {
   const xlExtRate = paasExtRateFor(xlExtGb)
   const xlExtCost = xlExtGb * xlExtRate
 
-  pushRow(['PaaS — měsíční náklady (Virtuozzo, pro srovnání)'], 'secPaaS')
+  pushRow(['PaaS — měsíční náklady'], 'secPaaS')
   pushRow(['Cloudlety (rezervované + dynamické)', paasSplitXl.reserved + ' + ' + paasSplitXl.dynamic + ' cloudletů · využití ' + Math.round(utilization * 100) + ' %', fmtKc(paasCloudCost)], ['lbl', 'note', 'val'])
   pushRow(['Disk PaaS', fmt(paasDiskGB) + ' GB × ' + fmt1(paasDiskRate_) + ' Kč/GB (tier Standard)', fmtKc(paasDisk)], ['lbl', 'note', 'val'])
   pushRow(['Public IP', xlIpCount + ' ks × ' + fmt1(PAAS_PUBLIC_IP_RATE_CZK) + ' Kč/IP', fmtKc(paasIp)], ['lbl', 'note', 'val'])
