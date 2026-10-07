@@ -793,7 +793,7 @@ async function exportExcel() {
   pushRow(['RAM', fmt(t.ramGB || 0) + ' GiB'], ['lbl', 'val'])
   pushRow(['Disk', fmt(t.diskGB || 0) + ' GB'], ['lbl', 'val'])
   if (t.publicIpCZK) pushRow(['Public IP (' + (t.publicIpCount || 0) + ' × ' + fmt1(t.publicIpRateCZK) + ' Kč)', fmtKc(t.publicIpCZK)], ['lbl', 'val'])
-  if (t.internetCZK) pushRow(['Internet (' + (t.internetMbps || 0) + ' Mbps)', fmtKc(t.internetCZK)], ['lbl', 'val'])
+  pushRow(['Internet (' + ((t.internetMbps || 0) > 0 ? (t.internetMbps + ' Mbps') : 'bez internetu') + ')', fmtKc(t.internetCZK || 0)], ['lbl', 'val'])
   pushRow(['Remote backup', fmtKc(t.remoteBackupCZK || 0) + ' (2 × ' + fmt(t.diskGB || 0) + ' GB × 0,68)'], ['lbl', 'val'])
   pushRow(['Cena (IaaS)', t.totalFormatted || '0 Kč'], ['lbl', 'total'])
   pushRow([], 'blank')
@@ -984,7 +984,7 @@ async function exportOfferExcel() {
   pushRow(['Disk', fmt1(t.diskGB || 0) + ' GB (dle výkonnostního tieru každého VM)', fmtKc(t.diskCostCZK)], ['lbl', 'note', 'val'])
   pushRow(['Remote backup', '2 × ' + fmt(t.diskGB || 0) + ' GB × ' + fmt1(c.remoteBackupRateCZK) + ' Kč/GB', fmtKc(t.remoteBackupCZK)], ['lbl', 'note', 'val'])
   if (t.publicIpCZK) pushRow(['Public IP (static IPv4)', (t.publicIpCount || 0) + ' ks × ' + fmt1(t.publicIpRateCZK) + ' Kč/IP', fmtKc(t.publicIpCZK)], ['lbl', 'note', 'val'])
-  if (t.internetCZK) pushRow(['Internet', (t.internetMbps || 0) + ' Mbps', fmtKc(t.internetCZK)], ['lbl', 'note', 'val'])
+  pushRow(['Internet', (t.internetMbps || 0) > 0 ? (t.internetMbps + ' Mbps') : 'bez internetu', fmtKc(t.internetCZK || 0)], ['lbl', 'note', 'val'])
   pushRow(['Cena (IaaS) měsíčně', '', t.totalFormatted || fmtKc(t.totalCZK)], ['lbl', '', 'total'])
   pushRow([], 'blank')
 
