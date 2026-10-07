@@ -58,6 +58,7 @@ Copy from the template: `cp .env.example .env`
 | `IaaS_PAAS_PUBLIC_IP_RATE_CZK` | PaaS public IP (CZK/IP/month, firewall only) | `120.01` |
 | `IaaS_PAAS_EXT_RATES` | External traffic: CZK/GB prices per band (Virtuozzo) | `0.3098,0.2943,0.2788,0.2634,0.2479` |
 | `IaaS_PAAS_EXT_LIMITS_GB` | External traffic: band upper limits in GB (last = ∞) | `5110,10230,51190,102390` |
+| `IaaS_INTERNET_RATES` | Internet connectivity CZK/month per speed and commitment (0,12,24,36) | `100:700,630,595,560;500:1800,1620,1530,1440;1000:3200,2880,2720,2560` |
 | `TCLOUD_BASE_URL` | T-Cloud API base | `https://prg1.t-cloud.eu/api/2.0` |
 | `TCLOUD_REFERER` | Referer header | `https://prg1.t-cloud.eu` |
 | `TCLOUD_USERNAME` / `TCLOUD_PASSWORD` / `TCLOUD_OTP_SECRET` | deployment credentials (fallback) | empty |
@@ -92,9 +93,7 @@ total (IaaS) = ceil(Σ CPU GHz) × cpuRate
             + Σ disk GB × tierRate (per-VM tier)
             + Σ disk GB × 2 × 0.68        (Remote backup: 2× total disk × rate)
             + "Public IP"              (108 Kč, only when a firewall / opnsense group is present)
-             + Σ RAM GB × ramRate
-             + Σ disk GB × rate (per each VM's tier)
-             + "Public IP"                           (108 CZK, only with a firewall / opnsense group)
+            + "Internet"               (per speed and commitment, firewall only)
 ```
 
 Calculation steps (server `lib/pricing.js`, mirrored client-side in `public/main.js`):

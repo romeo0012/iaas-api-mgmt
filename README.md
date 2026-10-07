@@ -58,6 +58,7 @@ Kopíruj ze šablony: `cp .env.example .env`
 | `IaaS_PAAS_PUBLIC_IP_RATE_CZK` | PaaS Public IP (Kč/IP/měs, jen s firewallem) | `120.01` |
 | `IaaS_PAAS_EXT_RATES` | External traffic: ceny Kč/GB dle pásma (Virtuozzo) | `0.3098,0.2943,0.2788,0.2634,0.2479` |
 | `IaaS_PAAS_EXT_LIMITS_GB` | External traffic: horní hranice pásem v GB (poslední = ∞) | `5110,10230,51190,102390` |
+| `IaaS_INTERNET_RATES` | Internetová konektivita Kč/měs dle rychlosti a závazku (0,12,24,36) | `100:700,630,595,560;500:1800,1620,1530,1440;1000:3200,2880,2720,2560` |
 | `TCLOUD_BASE_URL` | T-Cloud API base | `https://prg1.t-cloud.eu/api/2.0` |
 | `TCLOUD_REFERER` | Referer hlavička | `https://prg1.t-cloud.eu` |
 | `TCLOUD_USERNAME` / `TCLOUD_PASSWORD` / `TCLOUD_OTP_SECRET` | přihlašovací údaje pro nasazení (fallback) | prázdné |
@@ -92,6 +93,7 @@ celkem (IaaS) = ceil(Σ CPU GHz) × sazbaCPU
               + Σ disk GB × sazba (dle tieru každého VM)
               + Σ disk GB × 2 × 0,68 Kč        (Remote backup, 2× celkový disk × sazba)
               + "Public IP"                        (108 Kč, jen pokud je firewall / skupina opnsense)
+              + "Internet"                         (dle rychlosti a závazku, jen s firewallem)
 ```
 
 Postup výpočtu (server `lib/pricing.js`, klientsky zrcadleno v `public/main.js`):
