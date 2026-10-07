@@ -149,6 +149,8 @@ An informational section in the UI — **does not affect the IaaS price**. It mo
 
 Clicking "Export Excel" mirrors the web content exactly (`exportExcel` in `public/main.js`): both costings (IaaS + PaaS with utilization), disk by tier, price by group, rates, and the VM table (columns `VM, Group, CPU GHz, RAM GiB, Disk GB, Tier, CPU, RAM, Disk, Price IaaS, Cloudlets, Price PaaS`). The PaaS summary rows follow the same order as the web (CPU → RAM → Reserved cloudlets → Dynamic cloudlets → Cloudlet price → Price / cloudlet → PaaS disk → Public IP → Total PaaS price). A **topology screenshot** (html2canvas + JSZip) is embedded at the top when available; rows are shifted so the image does not cover the text. The VM table's "Cloudlets" column shows cloudlets **per utilization** (`round(cl × utilization)`), not the maximum.
 
+The **"Cenová nabídka (Excel)"** button (`exportOfferExcel`) generates a formal quote: CENOVÁ NABÍDKA header (issue date, 30-day validity), subject with the environment name, customer fields, separate IaaS and PaaS priced line items with monthly totals, notes (prices excl. VAT), VM breakdown and signature blocks; the topology image sits on top. Both functions share `writeXlsx` (JSZip-based styling).
+
 ### 4. Topology
 
 - **Built-in default topology**: `Sec-01` (OPNsense, Fast, 4+4+50) + `App-01` (Standard, 8+4+100) + `Db-01` (Fast, 4+4+300). If `default.topo.json` exists (same format as the UI's `.topo.json` export), it is loaded **at server startup** instead.

@@ -753,16 +753,7 @@ function applyXlsxStyles(sheetXml, rowTags) {
   })
 }
 
-async function exportExcel() {
-  const c = lastCosting
-  const nodes = (c && c.perNode) || []
-  const t = (c && c.totals) || {}
-  const envInput = $('envName')
-  const env = (envInput && envInput.value.trim()) || (state.nodes[0] && state.nodes[0]._envName) || state.envName
-  const commit = (c && (c.commitmentLabel || (c.commitmentMonths + ' měs.'))) || ''
-  const { utilization } = paasPct()
-
-  const fmtKc = n => fmt(n == null ? 0 : n) + ' Kč'
+function rowCollector() {
   const aoa = []
   const rowTags = []
   const pushRow = (cells, spec) => {
@@ -778,6 +769,20 @@ async function exportExcel() {
     }
     rowTags.push(tags)
   }
+  return { aoa, rowTags, pushRow }
+}
+
+async function exportExcel() {
+  const c = lastCosting
+  const nodes = (c && c.perNode) || []
+  const t = (c && c.totals) || {}
+  const envInput = $('envName')
+  const env = (envInput && envInput.value.trim()) || (state.nodes[0] && state.nodes[0]._envName) || state.envName
+  const commit = (c && (c.commitmentLabel || (c.commitmentMonths + ' měs.'))) || ''
+  const { utilization } = paasPct()
+
+  const fmtKc = n => fmt(n == null ? 0 : n) + ' Kč'
+  const { aoa, rowTags, pushRow } = rowCollector()
 
   pushRow([env || 'IaaS Architektura'], 'title')
   if (commit) pushRow(['Závazek: ' + commit], 'subtitle')
@@ -873,10 +878,18 @@ async function exportExcel() {
   pushRow(['IaaS = surový výkon, plná kontrola a vysoká dostupnost, ale veškerý provoz a údržba je na vás. PaaS = vyšší cena, za kterou dostáváte méně práce a větší robustnost:'], 'note')
   for (const b of PAAS_BENEFITS) pushRow(['• ' + b], 'note')
 
+  await writeXlsx(aoa, rowTags,
+    [{ wch: 24 }, { wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 11 },
+     { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 13 }, { wch: 10 }, { wch: 12 }],
+    (env || 'topologie') + '.xlsx', '.topology', 'Costing mesic')
+  showStatus('Excel stažen ✓')
+}
+
+async function writeXlsx(aoa, rowTags, cols, fileName, topoSel, sheetName) {
   // --- Topologie jako obrázek vložený do binárního .xlsx ---
   let topoPng = null
   try {
-    const topoEl = document.querySelector('.topology')
+    const topoEl = topoSel && document.querySelector(topoSel)
     if (topoEl && window.html2canvas && window.JSZip) {
       let canvas = await html2canvas(topoEl, { scale: 2, backgroundColor: '#ffffff' })
       const maxW = 1400
@@ -900,13 +913,10 @@ async function exportExcel() {
   }
 
   const ws = XLSX.utils.aoa_to_sheet(aoa)
-  ws['!cols'] = [
-    { wch: 24 }, { wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 11 },
-    { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 13 }, { wch: 10 }, { wch: 12 },
-  ]
+  ws['!cols'] = cols
 
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Costing mesic')
+  XLSX.utils.book_append_sheet(wb, ws, sheetName || 'Cenova nabidka')
   const raw = XLSX.write(wb, { type: 'array', bookType: 'xlsx', compression: true })
 
   if (window.JSZip) {
@@ -937,16 +947,95 @@ async function exportExcel() {
     const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = (env || 'topologie') + '.xlsx'
+    a.download = fileName
     a.click()
     setTimeout(() => URL.revokeObjectURL(a.href), 3000)
   } else {
-    XLSX.writeFile(wb, (env || 'topologie') + '.xlsx', { compression: true })
+    XLSX.writeFile(wb, fileName, { compression: true })
   }
-  showStatus('Excel stažen ✓')
+}
+
+// ---- export cenové nabídky (Excel) ----
+
+async function exportOfferExcel() {
+  const c = lastCosting
+  const nodes = (c && c.perNode) || []
+  const t = (c && c.totals) || {}
+  const envInput = $('envName')
+  const env = (envInput && envInput.value.trim()) || (state.nodes[0] && state.nodes[0]._envName) || state.envName
+  const commit = (c && (c.commitmentLabel || (c.commitmentMonths + ' měs.'))) || ''
+  const { utilization } = paasPct()
+  const fmtKc = n => fmt(n == null ? 0 : n) + ' Kč'
+  const d = new Date()
+  const today = [('0' + d.getDate()).slice(-2), ('0' + (d.getMonth() + 1)).slice(-2), d.getFullYear()].join('. ')
+  const { aoa, rowTags, pushRow } = rowCollector()
+
+  pushRow(['CENOVÁ NABÍDKA'], 'title')
+  pushRow(['Číslo nabídky: ____________ · Vystaveno: ' + today + ' · Platnost nabídky: 30 dní'], 'subtitle')
+  pushRow(['Předmět: Cloudová infrastruktura — ' + (env || 'T-Business Cloud') + ' · Závazek: ' + commit], 'subtitle')
+  pushRow([], 'blank')
+  pushRow(['Zákazník:  ___________________________________________________________________'], 'note')
+  pushRow(['IČO / DIČ / Kontakt:  ________________________________________________________'], 'note')
+  pushRow([], 'blank')
+
+  pushRow(['IaaS — měsíční náklady (T-Business Business Cloud, Resource Pool)'], 'secIaaS')
+  pushRow(['CPU', fmt1(t.cpuGHz || 0) + ' GHz × ' + fmt1(c.rateCpuGHz) + ' Kč/GHz', fmtKc(t.cpuCostCZK)], ['lbl', 'note', 'val'])
+  pushRow(['RAM', fmt1(t.ramGB || 0) + ' GiB × ' + fmt1(c.rateRamGB) + ' Kč/GB', fmtKc(t.ramCostCZK)], ['lbl', 'note', 'val'])
+  pushRow(['Disk', fmt1(t.diskGB || 0) + ' GB (dle výkonnostního tieru každého VM)', fmtKc(t.diskCostCZK)], ['lbl', 'note', 'val'])
+  pushRow(['Remote backup', '2 × ' + fmt(t.diskGB || 0) + ' GB × ' + fmt1(c.remoteBackupRateCZK) + ' Kč/GB', fmtKc(t.remoteBackupCZK)], ['lbl', 'note', 'val'])
+  if (t.publicIpCZK) pushRow(['Public IP (static IPv4)', (t.publicIpCount || 0) + ' ks × ' + fmt1(t.publicIpRateCZK) + ' Kč/IP', fmtKc(t.publicIpCZK)], ['lbl', 'note', 'val'])
+  if (t.internetCZK) pushRow(['Internet', (t.internetMbps || 0) + ' Mbps', fmtKc(t.internetCZK)], ['lbl', 'note', 'val'])
+  pushRow(['Cena (IaaS) měsíčně', '', t.totalFormatted || fmtKc(t.totalCZK)], ['lbl', '', 'total'])
+  pushRow([], 'blank')
+
+  const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
+  const paasSplitXl = paasSplitCl(paasTotalCl, utilization)
+  const paasCloudCost = paasCloudletsCost(paasTotalCl, paasCommitment, utilization)
+  const paasDiskGB = nodes.reduce((s, n) => s + (Number(n.diskGB) || 0), 0)
+  const paasDiskRate_ = paasDiskRate(paasCommitment)
+  const hasOp = nodes.some(n => n.group === 'opnsense')
+  const xlIpCount = t.publicIpCount || 0
+  const paasIp = hasOp ? xlIpCount * PAAS_PUBLIC_IP_RATE_CZK : 0
+  const xlExtGb = Number.isFinite(paasExtGb) && paasExtGb > 0 ? paasExtGb : 0
+  const xlExtRate = paasExtRateFor(xlExtGb)
+  const xlExtCost = xlExtGb * xlExtRate
+
+  pushRow(['PaaS — měsíční náklady (Virtuozzo, pro srovnání)'], 'secPaaS')
+  pushRow(['Cloudlety (rezervované + dynamické)', paasSplitXl.reserved + ' + ' + paasSplitXl.dynamic + ' cloudletů · využití ' + Math.round(utilization * 100) + ' %', fmtKc(paasCloudCost)], ['lbl', 'note', 'val'])
+  pushRow(['Disk PaaS', fmt(paasDiskGB) + ' GB × ' + fmt1(paasDiskRate_) + ' Kč/GB (tier Standard)', fmtKc(paasDisk)], ['lbl', 'note', 'val'])
+  pushRow(['Public IP', xlIpCount + ' ks × ' + fmt1(PAAS_PUBLIC_IP_RATE_CZK) + ' Kč/IP', fmtKc(paasIp)], ['lbl', 'note', 'val'])
+  pushRow(['External traffic', fmt(xlExtGb) + ' GB × ' + fmt1(xlExtRate) + ' Kč/GB', fmtKc(xlExtCost)], ['lbl', 'note', 'val'])
+  pushRow(['Cena (PaaS) měsíčně', '', fmtKc(paasCloudCost + paasDisk + paasIp + xlExtCost)], ['lbl', '', 'total'])
+  pushRow([], 'blank')
+  pushRow(['Poznámky:'], 'note')
+  pushRow(['• Všechny ceny jsou měsíční, bez DPH, dle oficiálního kalkulátoru T-Business. Závazek: ' + commit + '.'], 'note')
+  pushRow(['• Public IP a Internet se účtují pouze při nasazeném firewallu (OPNsense); PaaS je uveden pro srovnání — za vyšší cenu dostáváte méně provozu a údržby.'], 'note')
+  pushRow([], 'blank')
+
+  pushRow(['Rozpis VM'], 'note')
+  const header = ['VM', 'Skupina', 'CPU GHz', 'RAM GiB', 'Disk GB', 'Tier', 'Cena IaaS', 'Cloudlety', 'Cena PaaS']
+  pushRow(header, 'thead')
+  const expTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
+  const expEffRate = expTotalCl > 0 ? paasCloudletsCost(expTotalCl, paasCommitment, utilization) / expTotalCl : 0
+  for (const n of nodes) {
+    const cl = paasCloudletsOf(n.cpuGHz, n.ramGB)
+    const ex = n.iaasExcluded
+    pushRow([(ex ? '[' + n.name + ' mimo IaaS]' : n.name), groupLabel(n.group), n.cpuGHz, n.ramGB, n.diskGB, n.diskTierLabel,
+      ex ? '—' : (n.totalFormatted || fmtKc(n.totalCZK)), fmt(Math.round(cl * utilization)), fmtKc(cl * expEffRate)],
+      { base: 'tcell', cells: { 6: 'tcellBold', 8: 'tcellBold' } })
+  }
+  pushRow([], 'blank')
+  pushRow(['Vystavil:  .......................................... · Dne: ' + today, 'Zákazník (razítko a podpis):  ..........................................'],
+    ['note', 'note'])
+
+  await writeXlsx(aoa, rowTags,
+    [{ wch: 22 }, { wch: 44 }, { wch: 14 }, { wch: 9 }, { wch: 9 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 12 }],
+    (env || 'topologie') + ' cenova nabidka.xlsx', '.topology', 'Cenova nabidka')
+  showStatus('Cenová nabídka stažena ✓')
 }
 
 $('xlBtn').onclick = exportExcel
+$('offerBtn').onclick = exportOfferExcel
 
 // ---- deploy ----
 

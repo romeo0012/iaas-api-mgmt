@@ -150,6 +150,8 @@ Postup výpočtu (server `lib/pricing.js`, klientsky zrcadleno v `public/main.js
 
 Kliknutí „Export Excel" zrcadlí přesně web obsah (`exportExcel` v `public/main.js`): oba costingy (IaaS + PaaS s utilizací), disk podle tieru, cenu podle skupiny, sazby, tabulku VM (sloupce `VM, Skupina, CPU GHz, RAM GiB, Disk GB, Tier, CPU, RAM, Disk, Cena IaaS, Cloudlety, Cena PaaS`). PaaS souhrn má řádky ve stejném pořadí jako web (CPU → RAM → Cloudlety rezervované → Cloudlety dynamické → Cena cloudletů → Cena / cloudlet → Disk PaaS → Public IP → Cena PaaS celkem). Nahoře se vloží **obrázek topologie** (html2canvas + JSZip), pokud je k dispozici; řádky se posunou tak, aby obrázek nepřekrýval text. Sloupec „Cloudlety" v tabulce VM zobrazuje počet cloudletů **dle utilizace** (`round(cl × utilization)`), nikoli maximální.
 
+Tlačítko **„Cenová nabídka (Excel)"** (`exportOfferExcel`) generuje formální obchodní dokument: hlavička CENOVÁ NABÍDKA (datum vystavení, platnost 30 dní), předmět s názvem prostředí, místa pro zákazníka, rozdělené IaaS a PaaS cenové položky (CPU/RAM/Disk/Remote backup/Public IP/Internet resp. Cloudlety/Disk/Public IP/External traffic) s měsíčními součty, poznámky (ceny bez DPH), rozpis VM a podpisové kolonky; nahoře je obrázek topologie. Obě funkce sdílejí `writeXlsx` (styling přes JSZip).
+
 ### 4. Topologie
 
 - **Defaultní topologie** (build-in): `Sec-01` (OPNsense, Fast, 4+4+50) + `App-01` (Standard, 8+4+100) + `Db-01` (Fast, 4+4+300). Pokud existuje `default.topo.json` (formát stejný jako `.topo.json` export UI), načte se **při startu serveru** místo ní.
