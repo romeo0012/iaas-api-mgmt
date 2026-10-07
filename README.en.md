@@ -49,7 +49,8 @@ Copy from the template: `cp .env.example .env`
 | `IaaS_DISK_RATE_CZK_GB` | price per disk GB/month, Super Fast tier (default commitment) | `3.15` (12m) |
 | `IaaS_PAAS_UTILIZATION` | default utilization for the PaaS section in % (UI slider 10–100; determines the number of dynamic cloudlets) | `40` |
 | `IaaS_REMOTE_BACKUP_RATE_CZK` | Remote backup rate (CZK/GB/month, multiplied by total disk) | `0.68` |
-| `IaaS_PUBLIC_IP_RATE_CZK` | flat monthly "Public IP" fee (only with a firewall/`opnsense`) | `108` |
+| `IaaS_PUBLIC_IP_RATE_CZK` | Public IP rate (CZK/IP/month) for the default 12m commitment (legacy; `IaaS_PUBLIC_IP_RATES` takes precedence) | `108` |
+| `IaaS_PUBLIC_IP_RATES` | Static public IPv4 CZK/IP/month by commitment: none, 12, 24, 36 | `156,108,102,96` |
 | `IaaS_PAAS_RESERVATION_PCT` | reserved cloudlets = always-paid minimum (% of total, PaaS) | `15` |
 | `IaaS_PAAS_RESERVED_RATES` | reserved PaaS cloudlet rates (CZK/cl/month, per band, comma-separated) | `98.84,93.88,88.91,84.02,79.06` |
 | `IaaS_PAAS_DYNAMIC_RATES` | dynamic PaaS cloudlet rates (CZK/cl/month, per band) | `148.26,144.54,140.82,137.09,133.44` |
@@ -79,7 +80,7 @@ Unit rates come from the official calculator https://t-business.cz/cs/kalkulator
 | Disk Fast 5000 (GB) | 2.60 | 1.80 | 1.70 | 1.60 |
 | Disk Standard 3000 (GB) | 1.95 | 1.35 | 1.28 | 1.20 |
 | Disk Basic 600 (GB) | 1.30 | 0.90 | 0.85 | 0.80 |
-| Public IP (flat/monthly, firewall only) | 108 | 108 | 108 | 108 |
+| Public IP (Static public IPv4, per IP/month, firewall only) | 156 | 108 | 102 | 96 |
 
 ## Costing — Calculation logic
 
@@ -92,7 +93,7 @@ total (IaaS) = ceil(Σ CPU GHz) × cpuRate
             + Σ RAM GB × ramRate
             + Σ disk GB × tierRate (per-VM tier)
             + Σ disk GB × 2 × 0.68        (Remote backup: 2× total disk × rate)
-            + "Public IP"              (108 Kč, only when a firewall / opnsense group is present)
+            + "Public IP"              (Static public IPv4, 0–10 × rate by commitment, firewall only)
             + "Internet"               (per speed and commitment, firewall only)
 ```
 

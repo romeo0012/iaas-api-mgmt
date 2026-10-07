@@ -64,7 +64,8 @@ function costOf(arch, commitmentMonths) {
   const cm = pricing.COMMITMENTS.includes(commitmentMonths) ? commitmentMonths : pricing.defaultCommitment()
   const rb = (arch && arch.remoteBackupGB != null) ? arch.remoteBackupGB : null
   const mbps = (arch && arch.internetMbps != null) ? arch.internetMbps : 0
-  return { arch: computed, computed, costing: pricing.summarize(computed.nodes, cm, rb, mbps) }
+  const ipCount = (arch && arch.publicIpCount != null) ? arch.publicIpCount : 1
+  return { arch: computed, computed, costing: pricing.summarize(computed.nodes, cm, rb, mbps, ipCount) }
 }
 
 app.get(p('/api/architecture'), (_req, res) => {

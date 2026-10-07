@@ -24,6 +24,7 @@ IaaS_PAAS_UTILIZATION=40
 # Business Cloud IaaS: fixny mesacny poplatok za public IP (Kc/IP/mesiac, len s firewallem/opnsense)
 IaaS_REMOTE_BACKUP_RATE_CZK=0.68
 IaaS_PUBLIC_IP_RATE_CZK=108
+IaaS_PUBLIC_IP_RATES=156,108,102,96
 
 # T-Cloud (prg1.t-cloud.eu) - deployment do IaaS
 TCLOUD_BASE_URL=https://prg1.t-cloud.eu/api/2.0

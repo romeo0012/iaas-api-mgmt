@@ -49,7 +49,8 @@ Kopíruj ze šablony: `cp .env.example .env`
 | `IaaS_DISK_RATE_CZK_GB` | cena za disk GB/měsíc, Super Fast tier (defaultní závazek) | `3.15` (12m) |
 | `IaaS_PAAS_UTILIZATION` | default využití pro PaaS sekci v % (UI slider 10–100; určuje počet dynamických cloudletů) | `40` |
 | `IaaS_REMOTE_BACKUP_RATE_CZK` | cena Remote backup (Kč/GB/měsíc, × celkový disk) | `0,68` |
-| `IaaS_PUBLIC_IP_RATE_CZK` | fixní měsíční poplatek „Public IP" (jen s firewallem/`opnsense`) | `108` |
+| `IaaS_PUBLIC_IP_RATE_CZK` | sazba Public IP (Kč/IP/měs) pro výchozí závazek 12m (legacy; přednost má `IaaS_PUBLIC_IP_RATES`) | `108` |
+| `IaaS_PUBLIC_IP_RATES` | Static public IPv4 Kč/IP/měs dle závazku: bez závazku, 12, 24, 36 | `156,108,102,96` |
 | `IaaS_PAAS_RESERVATION_PCT` | rezervované cloudlety = vždy placené minimum (% z celku, PaaS) | `15` |
 | `IaaS_PAAS_RESERVED_RATES` | rezervované sazby PaaS cloudletů (Kč/cl/měs, po pásmech, oddělené čárkou) | `98.84,93.88,88.91,84.02,79.06` |
 | `IaaS_PAAS_DYNAMIC_RATES` | dynamické sazby PaaS cloudletů (Kč/cl/měs, po pásmech) | `148.26,144.54,140.82,137.09,133.44` |
@@ -79,7 +80,7 @@ Jednotkové sazby pocházejí z oficiální kalkulačky https://t-business.cz/cs
 | Disk Fast 5000 (GB) | 2.60 | 1.80 | 1.70 | 1.60 |
 | Disk Standard 3000 (GB) | 1.95 | 1.35 | 1.28 | 1.20 |
 | Disk Basic 600 (GB) | 1.30 | 0.90 | 0.85 | 0.80 |
-| Public IP (fix měsíčně, jen s firewallem) | 108 | 108 | 108 | 108 |
+| Public IP (Static public IPv4, za IP/měs, jen s firewallem) | 156 | 108 | 102 | 96 |
 
 ## Costing — Logika výpočtu
 
@@ -92,7 +93,7 @@ celkem (IaaS) = ceil(Σ CPU GHz) × sazbaCPU
               + Σ RAM GB × sazbaRAM
               + Σ disk GB × sazba (dle tieru každého VM)
               + Σ disk GB × 2 × 0,68 Kč        (Remote backup, 2× celkový disk × sazba)
-              + "Public IP"                        (108 Kč, jen pokud je firewall / skupina opnsense)
+              + "Public IP"                        (Static public IPv4, 0–10 ks × sazba dle závazku, jen s firewallem)
               + "Internet"                         (dle rychlosti a závazku, jen s firewallem)
 ```
 

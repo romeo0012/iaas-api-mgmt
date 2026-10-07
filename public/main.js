@@ -14,7 +14,7 @@ function groupVlanName(key) { const g = groupMeta(key); return (g.vlanName || g.
 const TIER_LABELS = { superfast: 'Super Fast', fast: 'Fast', standard: 'Standard', basic: 'Basic' }
 function tierLabel(t) { return TIER_LABELS[t] || 'Super Fast' }
 
-let state = { nodes: [], vlans: {}, groups: {}, wanIp: '', commitment: 12, envName: '', remoteBackupGB: null, internetMbps: 0 }
+let state = { nodes: [], vlans: {}, groups: {}, wanIp: '', commitment: 12, envName: '', remoteBackupGB: null, internetMbps: 0, publicIpCount: 1 }
 let paasUtil = (typeof window.PAAS_UTILIZATION === 'number' && window.PAAS_UTILIZATION >= 10)
   ? Math.min(window.PAAS_UTILIZATION, 100) : 40
 let paasCloudRamMiB = 128
@@ -302,8 +302,10 @@ function renderCosting(costing) {
     `CPU: ${fmt(costing.rateCpuGHz)} Kč/GHz · RAM: ${fmt(costing.rateRamGB)} Kč/GB · Disk (Kč/GB): ${tierLine} · závazek: ${costing.commitmentLabel || (costing.commitmentMonths + ' měs.')}`
   const iaasIpEl = $('totIpIaaS')
   if (iaasIpEl) iaasIpEl.textContent = fmt(costing.publicIpCZK || 0) + ' Kč'
+  const ipSelStat = $('publicIpSel')
+  if (ipSelStat) ipSelStat.value = String(costing.publicIpCount || 0)
   const ipItem = $('ipIaaSItem')
-  if (ipItem) ipItem.hidden = !(costing.publicIpCZK || 0)
+  if (ipItem) ipItem.hidden = !costing.hasOpnsense
   const rbEl = $('totRbIaaS')
   if (rbEl) rbEl.textContent = fmt(costing.remoteBackupCZK || 0) + ' Kč'
   const internetSel = $('internetSel')
@@ -363,7 +365,7 @@ const rbCap = $('rbCapacity')
 }
 
 function recalc() {
-  socket.emit('recalc', { nodes: state.nodes.map(strip), vlans: state.vlans, groups: state.groups, commitmentMonths: state.commitment, remoteBackupGB: state.remoteBackupGB, internetMbps: state.internetMbps }, (res) => {
+  socket.emit('recalc', { nodes: state.nodes.map(strip), vlans: state.vlans, groups: state.groups, commitmentMonths: state.commitment, remoteBackupGB: state.remoteBackupGB, internetMbps: state.internetMbps, publicIpCount: state.publicIpCount }, (res) => {
     state.nodes = res.computed.nodes.map((n, i) => {
       const prev = state.nodes.find(p => p.idx === String(i))
       const c = (res.costing.perNode && res.costing.perNode[i]) || {}
@@ -566,6 +568,7 @@ function topologyConfig() {
     nodes: state.nodes.map(strip),
     remoteBackupGB: state.remoteBackupGB,
     internetMbps: state.internetMbps,
+    publicIpCount: state.publicIpCount,
   }
 }
 
@@ -574,6 +577,7 @@ function applyTopology(cfg) {
   state.commitment = (cfg && cfg.commitment != null) ? cfg.commitment : 12
   state.groups = (cfg && cfg.groups) || {}
   state.vlans = (cfg && cfg.vlans) || {}
+  state.publicIpCount = (cfg && cfg.publicIpCount != null) ? Math.max(0, Math.min(10, Math.round(Number(cfg.publicIpCount) || 0))) : 1
   state.internetMbps = (cfg && cfg.internetMbps != null) ? Math.round(Number(cfg.internetMbps) || 0) : 0
   state.remoteBackupGB = (cfg && cfg.remoteBackupGB != null && Number.isFinite(Number(cfg.remoteBackupGB)))
     ? Math.max(0, Number(cfg.remoteBackupGB)) : null
@@ -766,7 +770,7 @@ async function exportExcel() {
   pushRow(['CPU', fmt(t.cpuGHz || 0) + ' GHz'], ['lbl', 'val'])
   pushRow(['RAM', fmt(t.ramGB || 0) + ' GiB'], ['lbl', 'val'])
   pushRow(['Disk', fmt(t.diskGB || 0) + ' GB'], ['lbl', 'val'])
-  if (t.publicIpCZK) pushRow(['Public IP', fmtKc(t.publicIpCZK)], ['lbl', 'val'])
+  if (t.publicIpCZK) pushRow(['Public IP (' + (t.publicIpCount || 0) + ' × ' + fmt1(t.publicIpRateCZK) + ' Kč)', fmtKc(t.publicIpCZK)], ['lbl', 'val'])
   if (t.internetCZK) pushRow(['Internet (' + (t.internetMbps || 0) + ' Mbps)', fmtKc(t.internetCZK)], ['lbl', 'val'])
   pushRow(['Remote backup', fmtKc(t.remoteBackupCZK || 0) + ' (2 × ' + fmt(t.diskGB || 0) + ' GB × 0,68)'], ['lbl', 'val'])
   pushRow(['Cena (IaaS)', t.totalFormatted || '0 Kč'], ['lbl', 'total'])
@@ -1217,6 +1221,12 @@ if (rbCap) rbCap.addEventListener('change', () => {
 const internetSel = $('internetSel')
 if (internetSel) internetSel.onchange = () => {
   state.internetMbps = parseInt(internetSel.value, 10) || 0
+  recalc()
+}
+
+const ipSel = $('publicIpSel')
+if (ipSel) ipSel.onchange = () => {
+  state.publicIpCount = Math.max(0, Math.min(10, parseInt(ipSel.value, 10) || 0))
   recalc()
 }
 
