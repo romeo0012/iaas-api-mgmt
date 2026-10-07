@@ -57,10 +57,15 @@ function renderTopology(nodes, vlans) {
   const keys = Object.keys(state.groups || {})
   const groupKeys = keys.filter(k => k === 'opnsense').concat(keys.filter(k => k !== 'opnsense'))
 
-  // INTERNET + WAN connector + groups all in one horizontal row
+  // INTERNET + WAN (s počtem Public IP) + groups all in one horizontal row
   const html = []
+  const ipOpts = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n =>
+    `<option value="${n}"${n === (state.publicIpCount || 0) ? ' selected' : ''}>${n}</option>`).join('')
   html.push('<div class="t-node t-internet">INTERNET</div>')
-  html.push(`<div class="t-conn t-wan" data-vlan="opnsense" title="Klikni pro úpravu VLAN"><span class="t-vlan-name" id="wanIp">${esc(state.wanIp ? 'WAN · ' + state.wanIp : 'WAN')}</span></div>`)
+  html.push(`<div class="t-wan-box" data-vlan="opnsense" title="Klikni pro úpravu WAN VLAN">
+      <span class="t-vlan-name" id="wanIp">${esc(state.wanIp ? 'WAN · ' + state.wanIp : 'WAN')}</span>
+      <span class="t-wan-ipctl" title="Počet statických veřejných IPv4 (0–10)"><span>Public IP</span><select id="wanPubIpSel">${ipOpts}</select></span>
+    </div>`)
 
   for (const key of groupKeys) {
     const isSec = key === 'opnsense'
@@ -91,7 +96,15 @@ function renderTopology(nodes, vlans) {
       if (node) openModal(node)
     }
   })
-  document.querySelectorAll('.t-conn').forEach(el => { el.onclick = () => openVlanModal(el.dataset.vlan) })
+  document.querySelectorAll('.t-conn, .t-wan-box').forEach(el => { el.onclick = () => openVlanModal(el.dataset.vlan) })
+  const wanIpSel = $('wanPubIpSel')
+  if (wanIpSel) {
+    wanIpSel.onclick = e => e.stopPropagation()
+    wanIpSel.onchange = () => {
+      state.publicIpCount = Math.max(0, Math.min(10, parseInt(wanIpSel.value, 10) || 0))
+      recalc()
+    }
+  }
   document.querySelectorAll('.grp-del').forEach(el => { el.onclick = () => removeGroup(el.dataset.del) })
   document.querySelectorAll('.grp-edit').forEach(el => { el.onclick = () => openGroupModal(el.dataset.ed) })
   document.getElementById('addGroupBtn').onclick = addGroup
@@ -308,8 +321,6 @@ function renderCosting(costing) {
     `CPU: ${fmt(costing.rateCpuGHz)} Kč/GHz · RAM: ${fmt(costing.rateRamGB)} Kč/GB · Disk (Kč/GB): ${tierLine} · závazek: ${costing.commitmentLabel || (costing.commitmentMonths + ' měs.')}`
   const iaasIpEl = $('totIpIaaS')
   if (iaasIpEl) iaasIpEl.textContent = fmt(costing.publicIpCZK || 0) + ' Kč'
-  const ipSelStat = $('publicIpSel')
-  if (ipSelStat) ipSelStat.value = String(costing.publicIpCount || 0)
   const ipItem = $('ipIaaSItem')
   if (ipItem) ipItem.hidden = !costing.hasOpnsense
   const rbEl = $('totRbIaaS')
@@ -1228,12 +1239,6 @@ if (rbCap) rbCap.addEventListener('change', () => {
 const internetSel = $('internetSel')
 if (internetSel) internetSel.onchange = () => {
   state.internetMbps = parseInt(internetSel.value, 10) || 0
-  recalc()
-}
-
-const ipSel = $('publicIpSel')
-if (ipSel) ipSel.onchange = () => {
-  state.publicIpCount = Math.max(0, Math.min(10, parseInt(ipSel.value, 10) || 0))
   recalc()
 }
 

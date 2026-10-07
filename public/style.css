@@ -86,6 +86,40 @@ body {
 .t-conn:hover { background: #1f6feb; }
 .t-wan { width: 34px; height: 2px; background: #2e7d32; align-self: center; flex-shrink: 0; }
 .t-wan:hover { background: #2e7d32; }
+.t-wan-box {
+  align-self: center;
+  flex-shrink: 0;
+  background: #eaf3ea;
+  border: 2px dashed #2e7d32;
+  border-radius: 8px;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+}
+.t-wan-box:hover { border-style: solid; }
+.t-wan-box .t-vlan-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2e7d32;
+  white-space: nowrap;
+}
+.t-wan-box .t-wan-ipctl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #666;
+  cursor: pointer;
+}
+.t-wan-box select {
+  font-size: 11px;
+  padding: 1px 2px;
+  border-radius: 4px;
+  cursor: pointer;
+}
 .t-wan .t-vlan-name {
   position: absolute;
   left: 50%;
