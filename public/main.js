@@ -993,6 +993,7 @@ async function exportOfferExcel() {
   const paasCloudCost = paasCloudletsCost(paasTotalCl, paasCommitment, utilization)
   const paasDiskGB = nodes.reduce((s, n) => s + (Number(n.diskGB) || 0), 0)
   const paasDiskRate_ = paasDiskRate(paasCommitment)
+  const paasDisk = paasDiskGB * paasDiskRate_
   const hasOp = nodes.some(n => n.group === 'opnsense')
   const xlIpCount = t.publicIpCount || 0
   const paasIp = hasOp ? xlIpCount * PAAS_PUBLIC_IP_RATE_CZK : 0
