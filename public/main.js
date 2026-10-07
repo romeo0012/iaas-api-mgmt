@@ -329,6 +329,13 @@ function renderCosting(costing) {
   if (internetSel) internetSel.value = String(costing.internetMbps || 0)
   const netEl = $('totInternetIaaS')
   if (netEl) netEl.textContent = fmt(costing.internetCZK || 0) + ' Kč'
+const offerDefMib = (typeof window.OFFER_IAAS_CAPACITY_MIB === 'number' && window.OFFER_IAAS_CAPACITY_MIB > 0) ? window.OFFER_IAAS_CAPACITY_MIB : 500
+const offerDefGb = (typeof window.OFFER_PAAS_CAPACITY_GB === 'number' && window.OFFER_PAAS_CAPACITY_GB > 0) ? window.OFFER_PAAS_CAPACITY_GB : 5000
+const offerMibEl = $('offerIaasMib')
+if (offerMibEl) offerMibEl.value = String(offerDefMib)
+const offerGbEl = $('offerPaasGb')
+if (offerGbEl) offerGbEl.value = String(offerDefGb)
+
 const envNameInput = $('envName')
 if (envNameInput) envNameInput.addEventListener('input', () => {
   state.envName = envNameInput.value.trim()
@@ -973,8 +980,10 @@ async function exportOfferExcel() {
   pushRow(['CENOVÁ NABÍDKA'], 'title')
   pushRow(['Číslo nabídky: ____________ · Vystaveno: ' + today + ' · Platnost nabídky: 30 dní'], 'subtitle')
   pushRow(['Předmět: Cloudová infrastruktura — ' + (env || 'T-Business Cloud') + ' · Závazek: ' + commit], 'subtitle')
-  const offerIaasMib = (typeof window.OFFER_IAAS_CAPACITY_MIB === 'number' && window.OFFER_IAAS_CAPACITY_MIB > 0) ? window.OFFER_IAAS_CAPACITY_MIB : 500
-  const offerPaasGb = (typeof window.OFFER_PAAS_CAPACITY_GB === 'number' && window.OFFER_PAAS_CAPACITY_GB > 0) ? window.OFFER_PAAS_CAPACITY_GB : 5000
+  const offerMibEl2 = $('offerIaasMib')
+  const offerGbEl2 = $('offerPaasGb')
+  const offerIaasMib = (offerMibEl2 && Number(offerMibEl2.value) > 0) ? Number(offerMibEl2.value) : offerDefMib
+  const offerPaasGb = (offerGbEl2 && Number(offerGbEl2.value) > 0) ? Number(offerGbEl2.value) : offerDefGb
   pushRow(['Parametry: IaaS kapacita ' + offerIaasMib + ' MiB · PaaS kapacita ' + offerPaasGb + ' GB'], 'subtitle')
   pushRow([], 'blank')
   pushRow(['Zákazník:  ___________________________________________________________________'], 'note')
