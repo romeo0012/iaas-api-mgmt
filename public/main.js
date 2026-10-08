@@ -1425,7 +1425,8 @@ if (paasRange) {
 const paasResRange = $('paasResRange')
 if (paasResRange) {
   paasResRange.oninput = () => {
-    paasReservation = parseInt(paasResRange.value, 10) || 15
+    paasReservation = parseInt(paasResRange.value, 10) || 40
+    if (paasReservation < 10) paasReservation = 10
     paasResRange.value = String(paasReservation)
     const rv = $('paasResVal'); if (rv) rv.textContent = paasReservation + ' %'
     if (lastCosting) renderCosting(lastCosting)
