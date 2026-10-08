@@ -14,7 +14,7 @@ function groupVlanName(key) { const g = groupMeta(key); return (g.vlanName || g.
 const TIER_LABELS = { superfast: 'Super Fast', fast: 'Fast', standard: 'Standard', basic: 'Basic' }
 function tierLabel(t) { return TIER_LABELS[t] || 'Super Fast' }
 
-let state = { nodes: [], vlans: {}, groups: {}, wanIp: '', commitment: 12, envName: '', remoteBackupGB: null, internetMbps: 0, publicIpCount: 1 }
+let state = { nodes: [], vlans: {}, groups: {}, wanIp: '', commitment: 12, envName: '', remoteBackupGB: null, internetMbps: 0, publicIpCount: 1, s3Gb: 0 }
 let paasUtil = (typeof window.PAAS_UTILIZATION === 'number' && window.PAAS_UTILIZATION >= 10)
   ? Math.min(window.PAAS_UTILIZATION, 100) : 40
 let paasCloudRamMiB = 128
@@ -343,6 +343,8 @@ function renderCosting(costing) {
   if (internetSel) internetSel.value = String(costing.internetMbps || 0)
   const netEl = $('totInternetIaaS')
   if (netEl) netEl.textContent = fmt(costing.internetCZK || 0) + ' Kč'
+  const s3Elv = $('totS3')
+  if (s3Elv) s3Elv.textContent = fmt((costing.s3CZK || 0)) + ' Kč'
 const offerDefMib = (typeof window.OFFER_IAAS_CAPACITY_MIB === 'number' && window.OFFER_IAAS_CAPACITY_MIB > 0) ? window.OFFER_IAAS_CAPACITY_MIB : 500
 const offerDefGb = (typeof window.OFFER_PAAS_CAPACITY_GB === 'number' && window.OFFER_PAAS_CAPACITY_GB > 0) ? window.OFFER_PAAS_CAPACITY_GB : 5000
 
@@ -400,7 +402,7 @@ const rbCap = $('rbCapacity')
 }
 
 function recalc() {
-  socket.emit('recalc', { nodes: state.nodes.map(strip), vlans: state.vlans, groups: state.groups, commitmentMonths: state.commitment, remoteBackupGB: state.remoteBackupGB, internetMbps: state.internetMbps, publicIpCount: state.publicIpCount }, (res) => {
+  socket.emit('recalc', { nodes: state.nodes.map(strip), vlans: state.vlans, groups: state.groups, commitmentMonths: state.commitment, remoteBackupGB: state.remoteBackupGB, internetMbps: state.internetMbps, publicIpCount: state.publicIpCount, s3Gb: state.s3Gb }, (res) => {
     state.nodes = res.computed.nodes.map((n, i) => {
       const prev = state.nodes.find(p => p.idx === String(i))
       const c = (res.costing.perNode && res.costing.perNode[i]) || {}
@@ -603,6 +605,7 @@ function topologyConfig() {
     nodes: state.nodes.map(strip),
     remoteBackupGB: state.remoteBackupGB,
     internetMbps: state.internetMbps,
+    s3Gb: state.s3Gb,
     publicIpCount: state.publicIpCount,
   }
 }
@@ -614,6 +617,7 @@ function applyTopology(cfg) {
   state.vlans = (cfg && cfg.vlans) || {}
   state.publicIpCount = (cfg && cfg.publicIpCount != null) ? Math.max(0, Math.min(10, Math.round(Number(cfg.publicIpCount) || 0))) : 1
   state.internetMbps = (cfg && cfg.internetMbps != null) ? Math.round(Number(cfg.internetMbps) || 0) : 0
+  state.s3Gb = (cfg && cfg.s3Gb != null) ? Math.max(0, Math.round(Number(cfg.s3Gb) || 0)) : 0
   state.remoteBackupGB = (cfg && cfg.remoteBackupGB != null && Number.isFinite(Number(cfg.remoteBackupGB)))
     ? Math.max(0, Number(cfg.remoteBackupGB)) : null
   state.nodes = ((cfg && cfg.nodes) || []).map((n, i) => ({ ...n, idx: String(i) }))
@@ -1006,7 +1010,11 @@ async function exportOfferExcel() {
   pushRow(['Remote backup', '2 × ' + fmt(t.diskGB || 0) + ' GB × ' + fmt1(c.remoteBackupRateCZK) + ' Kč/GB', fmtKc(t.remoteBackupCZK)], ['lbl', 'note', 'val'])
   if (t.publicIpCZK) pushRow(['Public IP (static IPv4)', (t.publicIpCount || 0) + ' ks × ' + fmt1(t.publicIpRateCZK) + ' Kč/IP', fmtKc(t.publicIpCZK)], ['lbl', 'note', 'val'])
   pushRow(['Internet', (t.internetMbps || 0) > 0 ? (t.internetMbps + ' Mbps') : 'bez internetu', fmtKc(t.internetCZK || 0)], ['lbl', 'note', 'val'])
-  pushRow(['Cena (IaaS) měsíčně', '', t.totalFormatted || fmtKc(t.totalCZK)], ['lbl', '', 'total'])
+  const s3g = Math.max(0, Math.round(Number((state && state.s3Gb) != null ? state.s3Gb : (t.s3Gb || 0)) || 0))
+  const s3c = s3g * 0.30
+  pushRow(['S3 úložiště', fmt(s3g) + ' GB × 0,30 Kč/GB', fmtKc(s3c)], ['lbl', 'note', 'val'])
+  const totalIaasXl = (t.totalCZK || 0) + s3c
+  pushRow(['Cena (IaaS) měsíčně', '', fmtKc(totalIaasXl)], ['lbl', '', 'total'])
   pushRow([], 'blank')
 
   const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
@@ -1253,6 +1261,7 @@ function loadArch(data) {
     return { ...n, idx: String(i), _cost: c.totalFormatted }
   })
   if (data.costing && data.costing.internetMbps != null) state.internetMbps = Math.round(Number(data.costing.internetMbps) || 0)
+  state.s3Gb = (data.costing && data.costing.s3Gb != null) ? Math.max(0, Math.round(Number(data.costing.s3Gb) || 0)) : (state.s3Gb || 0)
   state.vlans = data.computed.vlans || {}
   state.groups = data.computed.groups || {}
   const net = $('internetSel')
@@ -1350,6 +1359,11 @@ if (rbCap) rbCap.addEventListener('change', () => {
   recalc()
 })
 
+const s3El = $("s3Gb")
+if (s3El) {
+  s3El.value = String(state.s3Gb || 0)
+  s3El.onchange = () => { state.s3Gb = Math.max(0, parseInt(s3El.value, 10) || 0); recalc() }
+}
 const internetSel = $('internetSel')
 if (internetSel) internetSel.onchange = () => {
   state.internetMbps = parseInt(internetSel.value, 10) || 0

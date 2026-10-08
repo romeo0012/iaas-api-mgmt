@@ -172,8 +172,10 @@ body {
 .t-addcol { flex: 0 0 auto; align-self: center; }
 .grp-add { white-space: nowrap; border-style: dashed; }
 
-.t-env { margin-top: 20px; font-size: 14px; color: #333; }
+.t-env { margin-top: 12px; font-size: 14px; color: #333; }
 .t-env-input { width: 320px; max-width: 100%; padding: 4px 8px; font: inherit; font-size: 14px; border: 1px solid #d5d9e6; border-radius: 4px; background: #fff; }
+.t-s3 { margin-top: 12px; display: flex; gap: 8px; align-items: center; font-size: 13px; color: #333; }
+.t-s3 input { width: 100px; padding: 3px 6px; font: inherit; font-size: 13px; border: 1px solid #d5d9e6; border-radius: 4px; }
 
 
 /* ---- Controls ---- */
