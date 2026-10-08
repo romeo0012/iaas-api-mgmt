@@ -265,7 +265,9 @@ function renderCosting(costing) {
   const utilPct = paasUtil / 100
   const paasReservedCl = Math.ceil(baseCloudlets * (paasReservation / 100))
   const paasDynamicCl = Math.max(0, Math.ceil(baseCloudlets * (paasUtil / 100)) - paasReservedCl)
-  const paasCloudletCost = paasCloudletsCost(baseCloudlets, 0, utilPct)
+  const resCount = Math.ceil(baseCloudlets * (paasReservation / 100))
+  const dynCount = Math.max(0, Math.ceil(baseCloudlets * (paasUtil / 100)) - resCount)
+  const paasCloudletCost = bandCost(resCount, PAAS_RESERVED_RATES, PAAS_BANDS) + bandCost(dynCount, PAAS_DYNAMIC_RATES, PAAS_BANDS)
   const paasEffRate = baseCloudlets > 0 ? paasCloudletCost / baseCloudlets : 0
   const paasDiskCl = Array.isArray(costing.perNode)
     ? costing.perNode.reduce((s, n) => s + (Number(n.diskGB) || 0), 0)
@@ -1415,6 +1417,7 @@ const paasRange = $('paasUtilRange')
 if (paasRange) {
   paasRange.oninput = () => {
     paasUtil = parseInt(paasRange.value, 10) || 40
+    if (paasReservation > paasUtil) { paasReservation = paasUtil; const resR = $('paasResRange'); const rv2 = $('paasResVal'); if (resR) resR.value = String(paasReservation); if (rv2) rv2.textContent = paasReservation + ' %' }
     const uv = $('paasUtilVal'); if (uv) uv.textContent = paasUtil + ' %'
     if (lastCosting) renderCosting(lastCosting)
   }
@@ -1423,6 +1426,8 @@ const paasResRange = $('paasResRange')
 if (paasResRange) {
   paasResRange.oninput = () => {
     paasReservation = parseInt(paasResRange.value, 10) || 15
+    if (paasReservation > paasUtil) paasReservation = paasUtil
+    paasResRange.value = String(paasReservation)
     const rv = $('paasResVal'); if (rv) rv.textContent = paasReservation + ' %'
     if (lastCosting) renderCosting(lastCosting)
   }
