@@ -278,7 +278,9 @@ function renderCosting(costing) {
   const extGb = Number.isFinite(paasExtGb) && paasExtGb > 0 ? paasExtGb : 0
   const paasExtRate = paasExtRateFor(extGb)
   const paasExtCost = extGb * paasExtRate
-  const paasGrandTotal = paasCloudletCost + paasDiskCost + paasIpCost + paasExtCost
+  const s3v = Math.max(0, Math.round(Number((costing && costing.s3Gb) != null ? costing.s3Gb : (state && state.s3Gb) || 0) || 0))
+  const s3cTot = s3v * 0.30
+  const paasGrandTotal = paasCloudletCost + paasDiskCost + paasIpCost + paasExtCost + s3cTot
   const el = $('totCloudletsR')
   if (el) el.textContent = fmt(paasReservedCl)
   const elD = $('totCloudletsD')
@@ -302,6 +304,19 @@ function renderCosting(costing) {
     extEl.textContent = fmt(paasExtCost) + ' Kč'
     extEl.title = extGb > 0 ? (fmt(extGb) + ' GB × ' + fmt1(paasExtRate) + ' Kč/GB') : 'zadej GB/měs pro výpočet'
   }
+  const s3ElP = document.querySelector('#paasAddS3')
+  if (!s3ElP) {
+    const pbox = document.querySelector('.cost-paas-additional')
+    if (pbox) {
+      const d = document.createElement('div')
+      d.className = 'cost-item'
+      d.id = 'paasAddS3'
+      d.innerHTML = '<span class="cost-label">CENA S3</span><span id="totS3P">0 Kč</span>'
+      pbox.appendChild(d)
+    }
+  }
+  const s3ElP2 = document.querySelector('#totS3P')
+  if (s3ElP2) s3ElP2.textContent = fmt(s3cTot) + ' Kč'
   const grandEl = $('totPaasGrand')
   if (grandEl) grandEl.textContent = fmt(paasGrandTotal) + ' Kč'
   const paasDiscSumGb = $('paasDiscSumGb')
@@ -1017,11 +1032,11 @@ async function exportOfferExcel() {
   pushRow(['Cena (IaaS) měsíčně', '', fmtKc(totalIaasXl)], ['lbl', '', 'total'])
   pushRow([], 'blank')
 
-  const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
+const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
   const paasSplitXl = paasSplitCl(paasTotalCl, utilization)
-  const paasCloudCost = paasCloudletsCost(paasTotalCl, 0, utilization)
+  const paasCloudCost = paasCloudletsCost(paasTotalCl, paasCommitment, utilization)
   const paasDiskGB = nodes.reduce((s, n) => s + (Number(n.diskGB) || 0), 0)
-  const paasDiskRate_ = paasDiskRate(12)
+  const paasDiskRate_ = paasDiskRate(paasCommitment)
   const paasDisk = paasDiskGB * paasDiskRate_
   const hasOp = nodes.some(n => n.group === 'opnsense')
   const xlIpCount = t.publicIpCount || 0
@@ -1029,13 +1044,16 @@ async function exportOfferExcel() {
   const xlExtGb = Number.isFinite(paasExtGb) && paasExtGb > 0 ? paasExtGb : 0
   const xlExtRate = paasExtRateFor(xlExtGb)
   const xlExtCost = xlExtGb * xlExtRate
+  const s3gv = Math.max(0, Math.round(Number((state && state.s3Gb) != null ? state.s3Gb : (c && c.s3Gb) || 0) || 0))
+  const s3cv = s3gv * 0.30
 
   pushRow(['PaaS — měsíční náklady'], 'secPaaS')
   pushRow(['Cloudlety (rezervované + dynamické)', paasSplitXl.reserved + ' + ' + paasSplitXl.dynamic + ' cloudletů · využití ' + Math.round(utilization * 100) + ' %', fmtKc(paasCloudCost)], ['lbl', 'note', 'val'])
   pushRow(['Disk PaaS', fmt(paasDiskGB) + ' GB × ' + fmt1(paasDiskRate_) + ' Kč/GB (tier Standard)', fmtKc(paasDisk)], ['lbl', 'note', 'val'])
   pushRow(['Public IP', xlIpCount + ' ks × ' + fmt1(PAAS_PUBLIC_IP_RATE_CZK) + ' Kč/IP', fmtKc(paasIp)], ['lbl', 'note', 'val'])
   pushRow(['External traffic', fmt(xlExtGb) + ' GB × ' + fmt1(xlExtRate) + ' Kč/GB', fmtKc(xlExtCost)], ['lbl', 'note', 'val'])
-  pushRow(['Cena (PaaS) měsíčně', '', fmtKc(paasCloudCost + paasDisk + paasIp + xlExtCost)], ['lbl', '', 'total'])
+  pushRow(['CENA S3', fmt(s3gv) + ' GB × 0,30 Kč/GB', fmtKc(s3cv)], ['lbl', 'note', 'val'])
+  pushRow(['Cena (PaaS) měsíčně', '', fmtKc(paasCloudCost + paasDisk + paasIp + xlExtCost + s3cv)], ['lbl', '', 'total'])
   pushRow([], 'blank')
   pushRow(['Poznámky:'], 'note')
   pushRow(['• Všechny ceny jsou měsíční, bez DPH, dle oficiálního kalkulátoru T-Business. Závazek: ' + commit + '.'], 'note')
