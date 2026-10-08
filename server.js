@@ -69,20 +69,18 @@ app.use(BASE_PATH, express.static(__dirname + '/public'))
 function p(route) { return BASE_PATH + route }
 
 
+
 function costOf(arch, commitmentMonths) {
   const full = Array.isArray(arch && arch.nodes) ? arch : arch || {}
   const computed = architecture.compute(full)
-  let cm = 12
-  if (Array.isArray(pricing.COMMITMENTS) && pricing.COMMITMENTS.includes(commitmentMonths)) cm = commitmentMonths
-  
-  else if (typeof pricing.defaultCommitment === "number") cm = pricing.defaultCommitment; else if (typeof pricing.defaultCommitment === "function") cm = pricing.defaultCommitment()
+  const cm = pricing.COMMITMENTS.includes(commitmentMonths) ? commitmentMonths : pricing.defaultCommitment()
   const rb = (full && full.remoteBackupGB != null) ? full.remoteBackupGB : null
   const mbps = (full && full.internetMbps != null) ? full.internetMbps : 0
   const ipCount = (full && full.publicIpCount != null) ? full.publicIpCount : 1
   const s3v = Math.max(0, Math.round(Number((full && full.s3Gb) != null ? full.s3Gb : 0) || 0))
   const cst = pricing.summarize(computed.nodes, cm, rb, mbps, ipCount, { s3Gb: s3v })
   cst.s3CZK = s3v * 0.3; cst.s3Gb = s3v
-  if (cst.totals) { cst.totals.s3CZK = s3v*0.3; cst.totals.s3Gb = s3v; cst.totals.totalCZK = (cst.totals.totalCZK||0)+s3v*0.3; cst.totals.totalFormatted = (Math.round(cst.totals.totalCZK*100)/100).toLocaleString("cs-CZ",{minimumFractionDigits:0,maximumFractionDigits:2})+" Kč" }
+  if (cst.totals) { cst.totals.s3CZK = s3v*0.3; cst.totals.s3Gb = s3v; cst.totals.totalCZK = (cst.totals.totalCZK||0)+s3v*0.3; cst.totals.totalFormatted = pricing.formatCZK ? pricing.formatCZK(cst.totals.totalCZK) : String(cst.totals.totalCZK) }
   return { arch: computed, computed, costing: cst }
 }
 app.get(p('/api/architecture'), (_req, res) => {
