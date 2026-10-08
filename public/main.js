@@ -44,7 +44,6 @@ if (_pc) {
     PAAS_EXT_BANDS = _pc.extTrafficBands.map(b => ({ to: b.to == null ? Infinity : Number(b.to), rate: Number(b.rate) }))
   }
 }
-let paasCommitment = 12
 let paasCommitCpuRates = {}
 let editingId = null
 let editingVlan = null
@@ -190,11 +189,13 @@ function paasSplitCl(totalCl, util) {
   return { reserved, dynamic }
 }
 
-function paasCloudletsCost(totalCl, cm, util) {
-  const ratio = paasCommitRatio(cm)
-  const { reserved, dynamic } = paasSplitCl(totalCl, util)
-  const cost = paasBandedCost(reserved, PAAS_RESERVED_RATES) + paasBandedCost(dynamic, PAAS_DYNAMIC_RATES)
-  return cost * ratio
+function paasCloudletsCost(totalCl, cm, utilPct) {
+  if (totalCl <= 0) return 0
+  const s = paasSplitCl(totalCl, utilPct)
+  let costR = 0, costD = 0
+  costR = bandCost(s.reserved, PAAS_RESERVED_RATES, PAAS_BANDS)
+  costD = bandCost(s.dynamic, PAAS_DYNAMIC_RATES, PAAS_BANDS)
+  return Math.round(costR + costD)
 }
 
 // PaaS disk sazba = IaaS tier "Standard" dle vybraného závazku (override z .env má přednost).
@@ -251,12 +252,12 @@ function renderCosting(costing) {
   const paasSplit = paasSplitCl(baseCloudlets, utilPct)
   const paasReservedCl = paasSplit.reserved
   const paasDynamicCl = paasSplit.dynamic
-  const paasCloudletCost = paasCloudletsCost(baseCloudlets, paasCommitment, utilPct)
+  const paasCloudletCost = paasCloudletsCost(baseCloudlets, 0, utilPct)
   const paasEffRate = baseCloudlets > 0 ? paasCloudletCost / baseCloudlets : 0
   const paasDiskCl = Array.isArray(costing.perNode)
     ? costing.perNode.reduce((s, n) => s + (Number(n.diskGB) || 0), 0)
     : 0
-  const paasDiskCost = paasDiskCl * paasDiskRate(paasCommitment)
+  const paasDiskCost = paasDiskCl * paasDiskRate(12)
   const hasOpn = Array.isArray(costing.perNode) && costing.perNode.some(n => n.group === 'opnsense')
   const paasIpCount = hasOpn ? (costing.publicIpCount || 0) : 0
   const paasIpCost = paasIpCount * PAAS_PUBLIC_IP_RATE_CZK
@@ -290,11 +291,10 @@ function renderCosting(costing) {
   const grandEl = $('totPaasGrand')
   if (grandEl) grandEl.textContent = fmt(paasGrandTotal) + ' Kč'
   const paasDiscSumGb = $('paasDiscSumGb')
-  if (paasDiscSumGb) paasDiscSumGb.textContent = fmt(paasDiskCl) + ' GB × ' + fmt1(paasDiskRate(paasCommitment)) + ' Kč'
+  if (paasDiscSumGb) paasDiscSumGb.textContent = fmt(paasDiskCl) + ' GB × ' + fmt1(paasDiskRate(12)) + ' Kč'
   const paasDiscSum = $('paasDiscSum')
   if (paasDiscSum) paasDiscSum.textContent = fmt(paasDiskCost) + ' Kč'
-  const paasCommitSel = $('paasCommitSel')
-  if (paasCommitSel) paasCommitSel.value = String(paasCommitment)
+
   const paasMRam = $('paasCloudRamMiB'); if (paasMRam) paasMRam.value = String(paasCloudRamMiB)
   const paasMCpu = $('paasCloudCpuMHz'); if (paasMCpu) paasMCpu.value = String(paasCloudCpuMHz)
   const utilVal = $('paasUtilVal')
@@ -835,15 +835,15 @@ async function exportExcel() {
   pushRow([], 'blank')
 
   pushRow(['PaaS Costing / měsíc'], 'secPaaS')
-  pushRow([`Závazek (PaaS): ${commitLabel(paasCommitment)} · Cloudlet: ${paasCloudRamMiB} MiB RAM + ${paasCloudCpuMHz} MHz CPU · Virtuozzo pásma (R: 98.84–79.06 / D: 148.26–133.44 Kč/cl/měs, ×${fmt1(paasCommitRatio(paasCommitment))}) · Rezervace: 15 % cloudletů (vždy placené) `], 'note')
+  pushRow([`Závazek (PaaS): ${commitLabel(0)} · Cloudlet: ${paasCloudRamMiB} MiB RAM + ${paasCloudCpuMHz} MHz CPU · Virtuozzo pásma (R: 98.84–79.06 / D: 148.26–133.44 Kč/cl/měs) · Rezervace: 15 % cloudletů (vždy placené) `], 'note')
   pushRow([`Utilizace ${Math.round(utilization * 100)} % · Rezervované: 15 % celkových · Dynamické: ceil(celkem × utilizace) − rezervované`], 'note')
   const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
   const paasSplitXl = paasSplitCl(paasTotalCl, utilization)
   const paasResCl = paasSplitXl.reserved
   const paasDynCl = paasSplitXl.dynamic
-  const paasCloudCost = paasCloudletsCost(paasTotalCl, paasCommitment, utilization)
+  const paasCloudCost = paasCloudletsCost(paasTotalCl, 0, utilization)
   const paasDiskGB = nodes.reduce((s, n) => s + (Number(n.diskGB) || 0), 0)
-  const paasDiskRate_ = paasDiskRate(paasCommitment)
+  const paasDiskRate_ = paasDiskRate(12)
   const paasDisk = paasDiskGB * paasDiskRate_
   const hasOp = nodes.some(n => n.group === 'opnsense')
   const xlIpCount = t.publicIpCount || 0
@@ -866,7 +866,7 @@ async function exportExcel() {
   const header = ['VM', 'Skupina', 'CPU GHz', 'RAM GiB', 'Disk GB', 'Tier', 'CPU', 'RAM', 'Disk', 'Cena IaaS', 'Cloudlety', 'Cena PaaS']
   pushRow(header, 'thead')
   const expTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
-  const expEffRate = expTotalCl > 0 ? paasCloudletsCost(expTotalCl, paasCommitment, utilization) / expTotalCl : 0
+  const expEffRate = expTotalCl > 0 ? paasCloudletsCost(expTotalCl, 0, utilization) / expTotalCl : 0
   for (const n of nodes) {
     const cl = paasCloudletsOf(n.cpuGHz, n.ramGB)
     const ex = n.iaasExcluded
@@ -997,9 +997,9 @@ async function exportOfferExcel() {
 
   const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
   const paasSplitXl = paasSplitCl(paasTotalCl, utilization)
-  const paasCloudCost = paasCloudletsCost(paasTotalCl, paasCommitment, utilization)
+  const paasCloudCost = paasCloudletsCost(paasTotalCl, 0, utilization)
   const paasDiskGB = nodes.reduce((s, n) => s + (Number(n.diskGB) || 0), 0)
-  const paasDiskRate_ = paasDiskRate(paasCommitment)
+  const paasDiskRate_ = paasDiskRate(12)
   const paasDisk = paasDiskGB * paasDiskRate_
   const hasOp = nodes.some(n => n.group === 'opnsense')
   const xlIpCount = t.publicIpCount || 0
@@ -1024,7 +1024,7 @@ async function exportOfferExcel() {
   const header = ['VM', 'Skupina', 'CPU GHz', 'RAM GiB', 'Disk GB', 'Tier', 'Cena IaaS', 'Cloudlety', 'Cena PaaS']
   pushRow(header, 'thead')
   const expTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
-  const expEffRate = expTotalCl > 0 ? paasCloudletsCost(expTotalCl, paasCommitment, utilization) / expTotalCl : 0
+  const expEffRate = expTotalCl > 0 ? paasCloudletsCost(expTotalCl, 0, utilization) / expTotalCl : 0
   for (const n of nodes) {
     const cl = paasCloudletsOf(n.cpuGHz, n.ramGB)
     const ex = n.iaasExcluded
@@ -1342,13 +1342,7 @@ if (internetSel) internetSel.onchange = () => {
   recalc()
 }
 
-const paasCommitSel = $('paasCommitSel')
-if (paasCommitSel) paasCommitSel.onchange = () => {
-  paasCommitment = parseInt(paasCommitSel.value, 10)
-  if (!Number.isFinite(paasCommitment)) paasCommitment = 12
-  if (lastCosting) renderCosting(lastCosting)
-  else recalc()
-}
+
 
 const bindPaasParam = (input, setter, min) => {
   if (!input) return
@@ -1393,12 +1387,7 @@ fetch(BP + '/api/pricing').then(r => r.json()).then(data => {
     state.commitment = parseInt(commitSel.value, 10)
     if (!Number.isFinite(state.commitment)) state.commitment = 12
   }
-  if (paasCommitSel) {
-    paasCommitSel.innerHTML = commitOpts
-    paasCommitSel.value = String(defCm)
-    paasCommitment = parseInt(paasCommitSel.value, 10)
-    if (!Number.isFinite(paasCommitment)) paasCommitment = 12
-  }
+
 }).catch(() => {})
 
 fetch(BP + '/api/architecture').then(r => r.json()).then(loadArch)
