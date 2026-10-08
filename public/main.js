@@ -188,6 +188,20 @@ function paasSplitCl(totalCl, util) {
   const dynamic = Math.max(0, Math.ceil(totalCl * u) - reserved)
   return { reserved, dynamic }
 }
+function bandCost(cl, rates, bands) {
+  if (cl <= 0) return 0
+  let rem = cl, cost = 0, i = 0
+  while (rem > 0 && i < bands.length) {
+    const b = bands[i]
+    const take = Math.min(rem, b)
+    cost += take * rates[i]
+    rem -= take
+    i++
+  }
+  if (rem > 0) cost += rem * (rates[rates.length - 1] || 0)
+  return cost
+}
+
 
 function paasCloudletsCost(totalCl, cm, utilPct) {
   if (totalCl <= 0) return 0
