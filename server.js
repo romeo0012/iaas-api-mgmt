@@ -71,7 +71,7 @@ function p(route) { return BASE_PATH + route }
 
 
 function costOf(arch, commitmentMonths) {
-  const full = Array.isArray(arch && arch.nodes) ? arch : arch || {}
+  const full = (arch && Array.isArray(arch.nodes)) ? arch : (arch || {})
   const computed = architecture.compute(full)
   const cm = pricing.COMMITMENTS.includes(commitmentMonths) ? commitmentMonths : pricing.defaultCommitment()
   const rb = (full && full.remoteBackupGB != null) ? full.remoteBackupGB : null
@@ -81,6 +81,14 @@ function costOf(arch, commitmentMonths) {
   const cst = pricing.summarize(computed.nodes, cm, rb, mbps, ipCount, { s3Gb: s3v })
   cst.s3CZK = s3v * 0.3; cst.s3Gb = s3v
   if (cst.totals) { cst.totals.s3CZK = s3v*0.3; cst.totals.s3Gb = s3v; cst.totals.totalCZK = (cst.totals.totalCZK||0)+s3v*0.3; cst.totals.totalFormatted = pricing.formatCZK ? pricing.formatCZK(cst.totals.totalCZK) : String(cst.totals.totalCZK) }
+  // ensure root fields present
+  cst.cpuCostCZK = cst.totals.cpuCostCZK; cst.ramCostCZK = cst.totals.ramCostCZK; cst.diskCostCZK = cst.totals.diskCostCZK
+  cst.cpuGHz = cst.totals.cpuGHz; cst.ramGB = cst.totals.ramGB; cst.diskGB = cst.totals.diskGB
+  cst.remoteBackupCZK = cst.totals.remoteBackupCZK; cst.publicIpCZK = cst.totals.publicIpCZK; cst.internetCZK = cst.totals.internetCZK
+  cst.totalCZK = cst.totals.totalCZK; cst.totalFormatted = cst.totals.totalFormatted
+  cst.internetMbps = cst.totals.internetMbps; cst.publicIpCount = cst.totals.publicIpCount
+  cst.hasOpnsense = cst.hasOpnsense || (computed.nodes && computed.nodes.some(function(n){return n.group==="opnsense"}))
+  cst.rateCpuGHz = cst.rateCpuGHz; cst.rateRamGB = cst.rateRamGB
   return { arch: computed, computed, costing: cst }
 }
 app.get(p('/api/architecture'), (_req, res) => {
