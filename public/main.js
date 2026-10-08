@@ -1417,7 +1417,7 @@ const paasRange = $('paasUtilRange')
 if (paasRange) {
   paasRange.oninput = () => {
     paasUtil = parseInt(paasRange.value, 10) || 40
-    if (paasReservation > paasUtil) { paasReservation = paasUtil; const resR = $('paasResRange'); const rv2 = $('paasResVal'); if (resR) resR.value = String(paasReservation); if (rv2) rv2.textContent = paasReservation + ' %' }
+    
     const uv = $('paasUtilVal'); if (uv) uv.textContent = paasUtil + ' %'
     if (lastCosting) renderCosting(lastCosting)
   }
@@ -1426,7 +1426,6 @@ const paasResRange = $('paasResRange')
 if (paasResRange) {
   paasResRange.oninput = () => {
     paasReservation = parseInt(paasResRange.value, 10) || 15
-    if (paasReservation > paasUtil) paasReservation = paasUtil
     paasResRange.value = String(paasReservation)
     const rv = $('paasResVal'); if (rv) rv.textContent = paasReservation + ' %'
     if (lastCosting) renderCosting(lastCosting)
