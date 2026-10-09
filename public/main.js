@@ -999,7 +999,7 @@ async function writeXlsx(aoa, rowTags, cols, fileName, topoSel, sheetName) {
 // ---- export cenové nabídky (Excel) ----
 
 async function exportOfferExcel() {
-  const c = lastCosting
+  try { const c = lastCosting
   const nodes = (c && c.perNode) || []
   const t = (c && c.totals) || {}
   const envInput = $('envName')
@@ -1085,6 +1085,7 @@ const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB
     [{ wch: 22 }, { wch: 44 }, { wch: 14 }, { wch: 9 }, { wch: 9 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 12 }],
     (env || 'topologie') + ' cenova nabidka.xlsx', '.topology', 'Cenova nabidka')
   showStatus('Cenová nabídka stažena ✓')
+  } catch(e){ alert("Export cenové nabídky selhal: "+e.message); console.error(e) }
 }
 
 window.addEventListener("load", function(){ const xb=document.getElementById('xlBtn'); if(xb) xb.onclick=exportExcel; const ob=document.getElementById('offerBtn'); if(ob) ob.onclick=exportOfferExcel }, false)
