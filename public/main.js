@@ -820,7 +820,7 @@ async function exportExcel() {
   const env = (envInput && envInput.value.trim()) || (state.nodes[0] && state.nodes[0]._envName) || state.envName
   const commit = (c && (c.commitmentLabel || (c.commitmentMonths + ' měs.'))) || ''
   const { utilization } = paasPct()
-    const paasCommitment = commitmentMonths
+    const paasCommitment = cm
 
   const fmtKc = n => fmt(n == null ? 0 : n) + ' Kč'
   const { aoa, rowTags, pushRow } = rowCollector()
@@ -1006,7 +1006,7 @@ async function exportOfferExcel() {
   const env = (envInput && envInput.value.trim()) || (state.nodes[0] && state.nodes[0]._envName) || state.envName
   const commit = (c && (c.commitmentLabel || (c.commitmentMonths + ' měs.'))) || ''
   const { utilization } = paasPct()
-    const paasCommitment = commitmentMonths
+    const paasCommitment = cm
   const fmtKc = n => fmt(n == null ? 0 : n) + ' Kč'
   const d = new Date()
   const today = [('0' + d.getDate()).slice(-2), ('0' + (d.getMonth() + 1)).slice(-2), d.getFullYear()].join('. ')
