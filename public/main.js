@@ -1088,7 +1088,9 @@ const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB
   } catch(e){ alert("Export cenové nabídky selhal: "+e.message); console.error(e) }
 }
 
-window.addEventListener("load", function(){ const xb=document.getElementById('xlBtn'); if(xb) xb.onclick=exportExcel; const ob=document.getElementById('offerBtn'); if(ob) ob.onclick=exportOfferExcel }, false)
+function bindExcel(){ const xb=document.getElementById("xlBtn"); if(xb) xb.onclick=exportExcel; const ob=document.getElementById("offerBtn"); if(ob) ob.onclick=exportOfferExcel }
+if (document.readyState==="loading"){ document.addEventListener("DOMContentLoaded", bindExcel); } else { bindExcel(); }
+window.addEventListener("load", bindExcel, false);
 
 // ---- deploy ----
 
