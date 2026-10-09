@@ -276,7 +276,7 @@ function renderCosting(costing) {
     : 0
   const paasDiskCost = paasDiskCl * paasDiskRate(12)
   const hasOpn = Array.isArray(costing.perNode) && costing.perNode.some(n => n.group === 'opnsense')
-  const paasIpCount = hasOpn ? ((costing.publicIpCount != null) ? costing.publicIpCount : ((costing.totals && costing.totals.publicIpCount) != null ? costing.totals.publicIpCount : (state.publicIpCount != null ? state.publicIpCount : 0))) : 0
+  let paasIpCount = 0; if (hasOpn) { paasIpCount = costing.publicIpCount != null ? costing.publicIpCount : ((costing.totals && costing.totals.publicIpCount != null) ? costing.totals.publicIpCount : (state.publicIpCount != null ? state.publicIpCount : 0)) }
   const paasIpCost = paasIpCount * PAAS_PUBLIC_IP_RATE_CZK
   const extGb = Number.isFinite(paasExtGb) && paasExtGb > 0 ? paasExtGb : 0
   const paasExtRate = paasExtRateFor(extGb)
