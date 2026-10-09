@@ -883,7 +883,7 @@ async function exportExcel() {
   const paasDiskRate_ = paasDiskRate(12)
   const paasDisk = paasDiskGB * paasDiskRate_
   const hasOp = nodes.some(n => n.group === 'opnsense')
-  const xlIpCount = t.publicIpCount || 0
+  const hasOpX = nodes.some(n => n.group === "opnsense"); const xlIpCount = hasOpX ? (t.publicIpCount != null ? t.publicIpCount : (c.publicIpCount != null ? c.publicIpCount : (state.publicIpCount || 0))) : 0
   const paasIp = hasOp ? xlIpCount * PAAS_PUBLIC_IP_RATE_CZK : 0
   pushRow(['CPU', fmt1((t.cpuGHz || 0) * utilization) + ' GHz'], ['lbl', 'val'])
   pushRow(['RAM', fmt1((t.ramGB || 0) * utilization) + ' GiB'], ['lbl', 'val'])
@@ -1044,7 +1044,7 @@ const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB
   const paasDiskRate_ = paasDiskRate(paasCommitment)
   const paasDisk = paasDiskGB * paasDiskRate_
   const hasOp = nodes.some(n => n.group === 'opnsense')
-  const xlIpCount = t.publicIpCount || 0
+  const hasOpX = nodes.some(n => n.group === "opnsense"); const xlIpCount = hasOpX ? (t.publicIpCount != null ? t.publicIpCount : (c.publicIpCount != null ? c.publicIpCount : (state.publicIpCount || 0))) : 0
   const paasIp = hasOp ? xlIpCount * PAAS_PUBLIC_IP_RATE_CZK : 0
   const xlExtGb = Number.isFinite(paasExtGb) && paasExtGb > 0 ? paasExtGb : 0
   const xlExtRate = paasExtRateFor(xlExtGb)
