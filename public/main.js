@@ -1087,8 +1087,7 @@ const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB
   showStatus('Cenová nabídka stažena ✓')
 }
 
-$('xlBtn').onclick = exportExcel
-$('offerBtn').onclick = exportOfferExcel
+document.addEventListener("DOMContentLoaded", () => { const xb=$('xlBtn'); if(xb) xb.onclick=exportExcel; const ob=$('offerBtn'); if(ob) ob.onclick=exportOfferExcel })
 
 // ---- deploy ----
 
