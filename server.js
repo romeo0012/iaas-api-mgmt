@@ -59,7 +59,7 @@ app.use(BASE_PATH, (req, res, next) => {
       `window.OFFER_IAAS_CAPACITY_MIB=${Number(process.env.OFFER_IAAS_CAPACITY_MIB) || 0};` +
       `window.OFFER_PAAS_CAPACITY_GB=${Number(process.env.OFFER_PAAS_CAPACITY_GB) || 0};` +
       `window.IaaS_PAAS_EXT_GB=${Number(process.env.IaaS_PAAS_EXT_GB) || 0};` +
-      `window.IaaS_DEFAULT_INTERNET_MBPS=${defaultInternetMbps};</script>`
+      `window.IaaS_DEFAULT_INTERNET_MBPS=${defaultInternetMbps}; window.PAAS_RESERVATION_PCT=35;</script>`
     res.send(html.replace('</head>', baseTag + script + '</head>'))
   })
 })
