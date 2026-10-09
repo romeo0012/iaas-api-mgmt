@@ -18,6 +18,8 @@ let state = { nodes: [], vlans: {}, groups: {}, wanIp: '', commitment: 12, envNa
 let paasUtil = (typeof window.PAAS_UTILIZATION === 'number' && window.PAAS_UTILIZATION >= 10)
   ? Math.min(window.PAAS_UTILIZATION, 100) : 40
 let paasCloudRamMiB = 128
+let paasReservation = (typeof window.PAAS_RESERVATION_PCT === "number" && window.PAAS_RESERVATION_PCT >= 10 && window.PAAS_RESERVATION_PCT <= 100)
+  ? Math.round(window.PAAS_RESERVATION_PCT) : 35
 let paasCloudCpuMHz = 400
 // Virtuozzo (PaaS) ceník — objemová pásma cloudletů (měsíčně = hodinová × 730 h);
 // přepsatelné z .env přes window.PAAS_CONFIG (server injektuje po restartu).
