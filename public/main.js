@@ -1001,13 +1001,14 @@ async function writeXlsx(aoa, rowTags, cols, fileName, topoSel, sheetName) {
 
 async function exportOfferExcel() {
   try { const c = lastCosting
+  const cm = (c && c.commitmentMonths) || (state && state.commitment) || 12
   const nodes = (c && c.perNode) || []
   const t = (c && c.totals) || {}
   const envInput = $('envName')
   const env = (envInput && envInput.value.trim()) || (state.nodes[0] && state.nodes[0]._envName) || state.envName
   const commit = (c && (c.commitmentLabel || (c.commitmentMonths + ' měs.'))) || ''
   const { utilization } = paasPct()
-    const paasCommitment = cm
+  const paasCommitment = cm
   const fmtKc = n => fmt(n == null ? 0 : n) + ' Kč'
   const d = new Date()
   const today = [('0' + d.getDate()).slice(-2), ('0' + (d.getMonth() + 1)).slice(-2), d.getFullYear()].join('. ')
@@ -1089,7 +1090,12 @@ const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB
   } catch(e){ alert("Export cenové nabídky selhal: "+e.message); console.error(e) }
 }
 
-function bindExcel(){ const xb=document.getElementById("xlBtn"); if(xb) xb.onclick=exportExcel; const ob=document.getElementById("offerBtn"); if(ob) ob.onclick=exportOfferExcel }
+function bindExcel(){
+  const xb=document.getElementById("xlBtn");
+  if(xb) xb.onclick=()=>Promise.resolve(exportExcel()).catch(e=>{ alert("Export do Excel selhal: "+(e&&e.message||e)); console.error(e) });
+  const ob=document.getElementById("offerBtn");
+  if(ob) ob.onclick=()=>Promise.resolve(exportOfferExcel()).catch(e=>{ alert("Export cenové nabídky selhal: "+(e&&e.message||e)); console.error(e) });
+}
 if (document.readyState==="loading"){ document.addEventListener("DOMContentLoaded", bindExcel); } else { bindExcel(); }
 window.addEventListener("load", bindExcel, false);
 
