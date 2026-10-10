@@ -276,7 +276,7 @@ function renderCosting(costing) {
     : 0
   const paasDiskCost = paasDiskCl * paasDiskRate(12)
   const hasOpn = Array.isArray(costing.perNode) && costing.perNode.some(n => n.group === 'opnsense')
-  let paasIpCount = 0; if (hasOpn) { paasIpCount = (costing.publicIpCount != null) ? costing.publicIpCount : ((costing.totals && costing.totals.publicIpCount != null) ? costing.totals.publicIpCount : (state.publicIpCount != null ? state.publicIpCount : (t.publicIpCount || 0))) } else { paasIpCount = 0 }
+  let paasIpCount = (costing.publicIpCount != null) ? costing.publicIpCount : ((costing.totals && costing.totals.publicIpCount != null) ? costing.totals.publicIpCount : (state.publicIpCount != null ? state.publicIpCount : (t && t.publicIpCount || 0)))
   const paasIpCost = paasIpCount * PAAS_PUBLIC_IP_RATE_CZK
   const extGb = Number.isFinite(paasExtGb) && paasExtGb > 0 ? paasExtGb : 0
   const paasExtRate = paasExtRateFor(extGb)
@@ -354,7 +354,7 @@ function renderCosting(costing) {
   const iaasIpEl = $('totIpIaaS')
   if (iaasIpEl) iaasIpEl.textContent = fmt(costing.publicIpCZK || 0) + ' Kč'
   const ipItem = $('ipIaaSItem')
-  if (ipItem) ipItem.hidden = !costing.hasOpnsense
+  if (ipItem) ipItem.hidden = false
   const rbEl = $('totRbIaaS')
   if (rbEl) rbEl.textContent = fmt(costing.remoteBackupCZK || 0) + ' Kč'
   const internetSel = $('internetSel')
@@ -884,8 +884,8 @@ async function exportExcel() {
   const paasDiskRate_ = paasDiskRate(12)
   const paasDisk = paasDiskGB * paasDiskRate_
   const hasOp = nodes.some(n => n.group === 'opnsense')
-  const hasOpX = nodes.some(n => n.group === "opnsense"); const xlIpCount = hasOpX ? (t.publicIpCount != null ? t.publicIpCount : (c.publicIpCount != null ? c.publicIpCount : (state.publicIpCount || 0))) : 0
-  const paasIp = hasOp ? xlIpCount * PAAS_PUBLIC_IP_RATE_CZK : 0
+  const xlIpCount = (t.publicIpCount != null) ? t.publicIpCount : ((c.publicIpCount != null) ? c.publicIpCount : (state.publicIpCount || 0))
+  const paasIp = xlIpCount * PAAS_PUBLIC_IP_RATE_CZK
   pushRow(['CPU', fmt1((t.cpuGHz || 0) * utilization) + ' GHz'], ['lbl', 'val'])
   pushRow(['RAM', fmt1((t.ramGB || 0) * utilization) + ' GiB'], ['lbl', 'val'])
   pushRow(['Cloudlety rezervované (15 %)', fmt(paasResCl)], ['lbl', 'val'])
@@ -1046,8 +1046,8 @@ const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB
   const paasDiskRate_ = paasDiskRate(paasCommitment)
   const paasDisk = paasDiskGB * paasDiskRate_
   const hasOp = nodes.some(n => n.group === 'opnsense')
-  const hasOpX = nodes.some(n => n.group === "opnsense"); const xlIpCount = hasOpX ? (t.publicIpCount != null ? t.publicIpCount : (c.publicIpCount != null ? c.publicIpCount : (state.publicIpCount || 0))) : 0
-  const paasIp = hasOp ? xlIpCount * PAAS_PUBLIC_IP_RATE_CZK : 0
+  const xlIpCount = (t.publicIpCount != null) ? t.publicIpCount : ((c.publicIpCount != null) ? c.publicIpCount : (state.publicIpCount || 0))
+  const paasIp = xlIpCount * PAAS_PUBLIC_IP_RATE_CZK
   const xlExtGb = Number.isFinite(paasExtGb) && paasExtGb > 0 ? paasExtGb : 0
   const xlExtRate = paasExtRateFor(xlExtGb)
   const xlExtCost = xlExtGb * xlExtRate
