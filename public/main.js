@@ -814,7 +814,7 @@ function rowCollector() {
 
 async function exportExcel() {
   const c = lastCosting
-  const cm = (c && c.commitmentMonths) || state.commitment || 12
+  const cm = (c && c.commitmentMonths) || (state && state.commitment) || 12
   const nodes = (c && c.perNode) || []
   const t = (c && c.totals) || {}
   const envInput = $('envName')
