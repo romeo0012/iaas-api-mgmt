@@ -873,8 +873,9 @@ async function exportExcel() {
   pushRow([], 'blank')
 
   pushRow(['PaaS Costing / měsíc'], 'secPaaS')
-  pushRow([`Závazek (PaaS): ${commitLabel(0)} · Cloudlet: ${paasCloudRamMiB} MiB RAM + ${paasCloudCpuMHz} MHz CPU · Virtuozzo pásma (R: 98.84–79.06 / D: 148.26–133.44 Kč/cl/měs) · Rezervace: 15 % cloudletů (vždy placené) `], 'note')
-  pushRow([`Utilizace ${Math.round(utilization * 100)} % · Rezervované: 15 % celkových · Dynamické: ceil(celkem × utilizace) − rezervované`], 'note')
+  pushRow([`Závazek (PaaS): ${commitLabel(0)} · Cloudlet: ${paasCloudRamMiB} MiB RAM + ${paasCloudCpuMHz} MHz CPU · Virtuozzo pásma (R: 98.84–79.06 / D: 148.26–133.44 Kč/cl/měs) · Rezervace: ${Math.round(paasReservation)} % cloudletů (vždy placené)`], 'note')
+  const resPctXl = Math.round(paasReservation)
+  pushRow([`Utilizace ${Math.round(utilization * 100)} % · Rezervace: ${resPctXl} % celkových · Dynamické: max(0, ceil(celkem*${Math.round(utilization*100)}/100) - ceil(celkem*${resPctXl}/100))`], 'note')
   const paasTotalCl = nodes.reduce((s, n) => s + paasCloudletsOf(n.cpuGHz, n.ramGB), 0)
   const paasSplitXl = paasSplitCl(paasTotalCl, utilization)
   const paasResCl = paasSplitXl.reserved
@@ -888,7 +889,7 @@ async function exportExcel() {
   const paasIp = xlIpCount * PAAS_PUBLIC_IP_RATE_CZK
   pushRow(['CPU', fmt1((t.cpuGHz || 0) * utilization) + ' GHz'], ['lbl', 'val'])
   pushRow(['RAM', fmt1((t.ramGB || 0) * utilization) + ' GiB'], ['lbl', 'val'])
-  pushRow(['Cloudlety rezervované (15 %)', fmt(paasResCl)], ['lbl', 'val'])
+  pushRow(['Cloudlety rezervované (' + resPctXl + ' %)', fmt(paasResCl)], ['lbl', 'val'])
   pushRow(['Cloudlety dynamické (dle utilizace)', fmt(paasDynCl)], ['lbl', 'val'])
   pushRow(['Cena cloudletů (R + D)', fmtKc(paasCloudCost)], ['lbl', 'val'])
   pushRow(['Cena / cloudlet (průměr)', fmtKc(paasTotalCl > 0 ? paasCloudCost / paasTotalCl : 0)], ['lbl', 'val'])
